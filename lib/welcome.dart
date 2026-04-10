@@ -62,6 +62,17 @@ class WelcomeScreen extends StatelessWidget {
                 onPressed: () => _markSeenWelcomeAndNavigate(context, '/login'),
                 child: const Text('Prijavi se'),
               ),
+              const SizedBox(height: 14),
+              OutlinedButton(
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('seenWelcome', true);
+                  await prefs.setBool('isGuest', true);
+                  navigator.pushReplacementNamed('/home');
+                },
+                child: const Text('Nastavi kao gost'),
+              ),
 
               const SizedBox(height: 32),
               Center(

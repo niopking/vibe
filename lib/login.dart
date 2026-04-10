@@ -217,6 +217,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 const _OrDivider(),
                 const SizedBox(height: 22),
 
+                OutlinedButton(
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('isGuest', true);
+                    if (mounted) Navigator.pushReplacementNamed(context, '/home');
+                  },
+                  child: const Text('Nastavi kao gost'),
+                ),
+
+                const SizedBox(height: 28),
                 Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
