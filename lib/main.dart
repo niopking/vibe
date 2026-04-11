@@ -9,7 +9,7 @@ import 'signup.dart';
 import 'interests.dart';
 import 'home.dart';
 
-const kOrange = Color(0xFFFF8200);
+const kOrange = Color(0xFFF99427);
 const kDark = Color(0xFF161616);
 const kGrey = Color(0xFF2A2A2A);
 

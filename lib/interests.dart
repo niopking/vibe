@@ -1,21 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-const kOrange = Color(0xFFFF8200);
+const kOrange = Color(0xFFF99427);
 const kDark   = Color(0xFF161616);
 const kGrey   = Color(0xFF2A2A2A);
 
 const _categories = [
-  {'emoji': '⚽',   'label': 'Sport'},
-  {'emoji': '🏛️',   'label': 'Politika'},
-  {'emoji': '💻',   'label': 'Tehnologija'},
-  {'emoji': '💰',   'label': 'Ekonomija'},
-  {'emoji': '🎬',   'label': 'Kultura'},
-  {'emoji': '🌍',   'label': 'Svijet'},
-  {'emoji': '🔬',   'label': 'Nauka'},
-  {'emoji': '❤️‍🔥',   'label': 'Lifestyle'},
-  {'emoji': '🌿',   'label': 'Okoliš'},
-  {'emoji': '🎮',   'label': 'Gaming'},
+  {'emoji': '🎭', 'label': 'Showbizz'},
+  {'emoji': '❤️‍🔥', 'label': 'Lifestyle'},
+  {'emoji': '✈️', 'label': 'Travel'},
+  {'emoji': '💻', 'label': 'Tech'},
+  {'emoji': '🍽️', 'label': 'Gastro'},
+  {'emoji': '🎵', 'label': 'Muzika'},
+  {'emoji': '⚽', 'label': 'Sport'},
+  {'emoji': '📅', 'label': 'Event'},
+  {'emoji': '📢', 'label': 'Promo'},
 ];
 
 class InterestsScreen extends StatefulWidget {
@@ -68,7 +67,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
       await FirebaseFirestore.instance.collection('korisnici').doc(_userId).update({
         'interests': indexes,
       });
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-const kOrange = Color(0xFFFF8200);
+const kOrange = Color(0xFFF99427);
 const kDark   = Color(0xFF161616);
 const kGrey   = Color(0xFF2A2A2A);
 
@@ -109,11 +109,10 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
-                const SizedBox(height: 50),
+                const SizedBox(height: 12),
 
-                const _Logo(size: 48),
-                const SizedBox(height: 22),
+                Image.asset('images/logobeztr.png', width: 130, height: 130, fit: BoxFit.contain),
+                const SizedBox(height: 12),
                 Text('Kreiraj nalog', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 6),
                 const Text(
@@ -258,29 +257,6 @@ class _SignupScreenState extends State<SignupScreen> {
 }
 
 // ── Private widgets ────────────────────────────────────────────────────────────
-
-class _Logo extends StatelessWidget {
-  final double size;
-  const _Logo({this.size = 56});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: kOrange,
-        borderRadius: BorderRadius.circular(size * 0.24),
-      ),
-      child: Center(
-        child: Text(
-          'P',
-          style: TextStyle(color: Colors.white, fontSize: size * 0.55, fontWeight: FontWeight.w900),
-        ),
-      ),
-    );
-  }
-}
 
 class _FieldLabel extends StatelessWidget {
   final String text;

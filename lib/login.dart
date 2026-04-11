@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const kOrange = Color(0xFFFF8200);
+const kOrange = Color(0xFFF99427);
 const kDark   = Color(0xFF161616);
 const kGrey   = Color(0xFF2A2A2A);
 
@@ -127,19 +127,17 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
-                const SizedBox(height: 56),
-
-                const _Logo(size: 48),
-                const SizedBox(height: 22),
+                const SizedBox(height: 12),
+                Image.asset('images/logobeztr.png', width: 130, height: 130, fit: BoxFit.contain),
+                const SizedBox(height: 12),
                 Text('Dobrodošao nazad', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 const Text(
                   'Prijavi se na svoj nalog',
                   style: TextStyle(color: Color(0xFF888888), fontSize: 15),
                 ),
 
-                const SizedBox(height: 38),
+                const SizedBox(height: 24),
                 const _FieldLabel('EMAIL ADRESA'),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -157,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 const _FieldLabel('LOZINKA'),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -183,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     _Checkbox(
@@ -202,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _loading ? null : _submit,
                   child: _loading
@@ -213,9 +211,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text('Prijavi se'),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 16),
                 const _OrDivider(),
-                const SizedBox(height: 22),
+                const SizedBox(height: 16),
 
                 OutlinedButton(
                   onPressed: () async {
@@ -226,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text('Nastavi kao gost'),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 16),
                 Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -242,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -253,29 +251,6 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // ── Private widgets ────────────────────────────────────────────────────────────
-
-class _Logo extends StatelessWidget {
-  final double size;
-  const _Logo({this.size = 56});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: kOrange,
-        borderRadius: BorderRadius.circular(size * 0.24),
-      ),
-      child: Center(
-        child: Text(
-          'P',
-          style: TextStyle(color: Colors.white, fontSize: size * 0.55, fontWeight: FontWeight.w900),
-        ),
-      ),
-    );
-  }
-}
 
 class _FieldLabel extends StatelessWidget {
   final String text;

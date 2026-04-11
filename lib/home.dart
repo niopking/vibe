@@ -2,12 +2,22 @@ import 'package:flutter/material.dart';
 import 'categories.dart';
 import 'settings.dart';
 import 'profile.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'artikal.dart';
 
 const kOrange = Color(0xFFFF8200);
 const kDark = Color(0xFF161616);
 const kGrey = Color(0xFF2A2A2A);
 const kGreyLight = Color(0xFF3A3A3A);
 const kTextMuted = Color(0xFF888888);
+
+// Category mapping
+const Map<int, String> categoryMap = {
+  1: 'Tech',
+  2: 'Lifestyle',
+  3: 'Auto',
+  4: 'Travel',
+};
 
 // ── Data model ─────────────────────────────────────────────────────────────────
 
@@ -16,68 +26,55 @@ class Article {
   final String category;
   final String date;
   final String imageUrl;
-  final int comments;
+  final List<String> comments;
+  final String tekst;
+  final int timestamp;
   const Article({
     required this.title,
     required this.category,
     required this.date,
     required this.imageUrl,
-    this.comments = 0,
+    this.comments = const [],
+    this.tekst = '',
+    required this.timestamp,
   });
 }
 
-final List<Article> kFeaturedArticles = [
-  const Article(
-    title: 'Za šta ljudi zaista koriste Chat GPT?',
-    category: 'Tech',
-    date: '17. Septembra 2025.',
-    imageUrl: 'https://images.unsplash.com/photo-1676299081847-824916de030a?w=600',
-  ),
-  const Article(
-    title: 'Najinovativnija zemlja na svijetu je u Evropi',
-    category: 'Tech',
-    date: '17. Septembra 2025.',
-    imageUrl: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600',
-  ),
-  const Article(
-    title: 'iOS 26: Novi izgled i funkcije koje mijenjaju iskustvo',
-    category: 'Tech',
-    date: '16. Septembra 2025.',
-    imageUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=600',
-    comments: 2,
-  ),
-];
+// Function to format date
+String formatDate(int timestamp) {
+  final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000); // assuming seconds
+  final months = [
+    'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
+    'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'
+  ];
+  return '${date.day}. ${months[date.month - 1]} ${date.year}.';
+}
 
-final List<Article> kLatestArticles = [
-  const Article(
-    title: 'Kolač s jabukama i orasima koji miriše na toplotu doma',
-    category: 'Lifestyle',
-    date: '17. Septembra 2025.',
-    imageUrl: 'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400',
-    comments: 1,
-  ),
-  const Article(
-    title: 'Električni automobili: šta se mijenja u 2026?',
-    category: 'Auto',
-    date: '16. Septembra 2025.',
-    imageUrl: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400',
-    comments: 4,
-  ),
-  const Article(
-    title: 'Pet destinacija koje morate posjetiti ove jeseni',
-    category: 'Travel',
-    date: '15. Septembra 2025.',
-    imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
-    comments: 7,
-  ),
-  const Article(
-    title: 'Kako AI mijenja način na koji radimo svaki dan',
-    category: 'Tech',
-    date: '14. Septembra 2025.',
-    imageUrl: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=400',
-    comments: 12,
-  ),
-];
+// Function to fetch articles from Firestore
+Future<List<Article>> fetchArticles() async {
+  final snapshot = await FirebaseFirestore.instance.collection('vijesti').get();
+  return snapshot.docs.map((doc) {
+    final data = doc.data();
+    final datum = data['datum'] as int;
+    final kategorija = data['kategorija'] as int;
+    final naslov = data['naslov'] as String;
+    final slika = data['slika'] as String;
+    final tekst = data['tekst'] as String? ?? '';
+    final rawKomentari = data['komentari'];
+    final komentari = rawKomentari is List
+        ? rawKomentari.cast<String>()
+        : <String>[];
+    return Article(
+      title: naslov,
+      category: categoryMap[kategorija] ?? 'Unknown',
+      date: formatDate(datum),
+      imageUrl: slika,
+      comments: komentari,
+      tekst: tekst,
+      timestamp: datum,
+    );
+  }).toList();
+}
 
 // ── Main screen shell ──────────────────────────────────────────────────────────
 
@@ -182,31 +179,76 @@ class _NavItem {
 
 // ── Home page ──────────────────────────────────────────────────────────────────
 
-class _HomePage extends StatelessWidget {
+class _HomePage extends StatefulWidget {
   const _HomePage();
 
   @override
+  State<_HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<_HomePage> {
+  late Future<List<Article>> _articlesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _articlesFuture = fetchArticles();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          _TopBar(),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 24),
+    return FutureBuilder<List<Article>>(
+      future: _articlesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No articles found'));
+        } else {
+          final articles = snapshot.data!;
+          // Sort by timestamp descending
+          articles.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          final featuredArticles = articles.take(5).toList();
+          final latestArticles = articles.skip(5).toList();
+          return SafeArea(
+            bottom: false,
+            child: Column(
               children: [
-                const SizedBox(height: 8),
-                _FeaturedCarousel(),
-                const SizedBox(height: 20),
-                _SectionHeader(title: 'Najnovije', onMore: () {}),
-                const SizedBox(height: 8),
-                ...kLatestArticles.map((a) => _LatestArticleCard(article: a)),
+                _TopBar(),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    children: [
+                      const SizedBox(height: 8),
+                      ...featuredArticles.map((a) => GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ArtikalScreen(article: a),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          child: SizedBox(
+                            height: 260,
+                            child: _FeaturedCard(article: a),
+                          ),
+                        ),
+                      )),
+                      const SizedBox(height: 14),
+                      _SectionHeader(title: 'Najnovije', onMore: () {}),
+                      const SizedBox(height: 8),
+                      ...latestArticles.map((a) => _LatestArticleCard(article: a)),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 }
@@ -292,57 +334,7 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ── Featured carousel ──────────────────────────────────────────────────────────
-
-class _FeaturedCarousel extends StatefulWidget {
-  @override
-  State<_FeaturedCarousel> createState() => _FeaturedCarouselState();
-}
-
-class _FeaturedCarouselState extends State<_FeaturedCarousel> {
-  final PageController _controller = PageController(viewportFraction: 0.88);
-  int _current = 0;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 220,
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: kFeaturedArticles.length,
-            onPageChanged: (i) => setState(() => _current = i),
-            itemBuilder: (context, i) =>
-                _FeaturedCard(article: kFeaturedArticles[i]),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(kFeaturedArticles.length, (i) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: _current == i ? 18 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: _current == i ? kOrange : kGreyLight,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-}
+// ── Featured card ──────────────────────────────────────────────────────────────
 
 class _FeaturedCard extends StatelessWidget {
   final Article article;
@@ -350,9 +342,7 @@ class _FeaturedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: ClipRRect(
+    return ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           fit: StackFit.expand,
@@ -397,7 +387,7 @@ class _FeaturedCard extends StatelessWidget {
                       const Icon(Icons.chat_bubble_outline_rounded,
                           color: Colors.white60, size: 13),
                       const SizedBox(width: 4),
-                      Text('${article.comments}',
+                      Text('${article.comments.length}',
                           style: const TextStyle(
                               color: Colors.white60, fontSize: 11)),
                     ],
@@ -407,7 +397,6 @@ class _FeaturedCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -455,7 +444,12 @@ class _LatestArticleCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: GestureDetector(
-        onTap: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ArtikalScreen(article: article),
+          ),
+        ),
         child: Container(
           decoration: BoxDecoration(
               color: kGrey, borderRadius: BorderRadius.circular(14)),
@@ -502,7 +496,7 @@ class _LatestArticleCard extends StatelessWidget {
                           const Icon(Icons.chat_bubble_outline_rounded,
                               color: kTextMuted, size: 11),
                           const SizedBox(width: 3),
-                          Text('${article.comments}',
+                          Text('${article.comments.length}',
                               style: const TextStyle(
                                   color: kTextMuted, fontSize: 10)),
                         ],

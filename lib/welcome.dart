@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const kOrange = Color(0xFFFF8200);
+const kOrange = Color(0xFFF99427);
 const kDark   = Color(0xFF161616);
 const kGrey   = Color(0xFF2A2A2A);
 
@@ -18,128 +18,104 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kDark,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Spacer(flex: 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Spacer(flex: 1),
 
-              const _Logo(size: 64),
-              const SizedBox(height: 24),
-              RichText(
-                text: const TextSpan(
-                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, height: 1.15),
-                  children: [
-                    TextSpan(text: 'Vibe', style: TextStyle(color: kOrange)),
-                    TextSpan(text: 'News', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Vijesti prilagođene tebi.\nBrzo, jasno, bez šuma.',
-                style: TextStyle(color: Color(0xFF999999), fontSize: 17, height: 1.55),
-              ),
+            // Logo + slogan
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                children: [
+                  Image.asset(
+                    'images/logobeztr.png',
+                    width: 150,
+                    height: 150,
+                    fit: BoxFit.contain,
+                  ),
+                  Transform.translate(
+                    offset: const Offset(0, -18),
+                    child: Container(
+                      width: 36,
+                      height: 2.5,
+                      decoration: BoxDecoration(
+                        color: kOrange,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 0),
 
-              const Spacer(flex: 3),
-
-              const _FeatureRow(icon: Icons.bolt_rounded,     label: 'Uvijek svježe vijesti'),
-              const SizedBox(height: 12),
-              const _FeatureRow(icon: Icons.tune_rounded,     label: 'Personalizovani feed'),
-              const SizedBox(height: 12),
-              const _FeatureRow(icon: Icons.bookmark_rounded, label: 'Sačuvaj za čitanje'),
-
-              const Spacer(flex: 2),
-
-              ElevatedButton(
-                onPressed: () => _markSeenWelcomeAndNavigate(context, '/signup'),
-                child: const Text('Kreiraj nalog'),
+                  // Slogan
+                  const Text(
+                    'Vijesti prilagođene tebi.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Brzo, jasno i uvijek u toku.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 16,
+                      letterSpacing: 0.2,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              OutlinedButton(
-                onPressed: () => _markSeenWelcomeAndNavigate(context, '/login'),
-                child: const Text('Prijavi se'),
-              ),
-              const SizedBox(height: 14),
-              OutlinedButton(
-                onPressed: () async {
-                  final navigator = Navigator.of(context);
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('seenWelcome', true);
-                  await prefs.setBool('isGuest', true);
-                  navigator.pushReplacementNamed('/home');
-                },
-                child: const Text('Nastavi kao gost'),
-              ),
+            ),
 
-              const SizedBox(height: 32),
-              Center(
-                child: Text(
-                  '© 2025 VibeNews',
-                  style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 12),
-                ),
+            const Spacer(flex: 2),
+
+            // Dugmad na dnu
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _markSeenWelcomeAndNavigate(context, '/signup'),
+                    child: const Text('Kreiraj nalog'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => _markSeenWelcomeAndNavigate(context, '/login'),
+                    child: const Text('Prijavi se'),
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () async {
+                      final navigator = Navigator.of(context);
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('seenWelcome', true);
+                      await prefs.setBool('isGuest', true);
+                      navigator.pushReplacementNamed('/home');
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white.withValues(alpha: 0.38),
+                      textStyle: const TextStyle(fontSize: 14),
+                    ),
+                    child: const Text('Nastavi kao gost'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 32),
+          ],
         ),
       ),
-    );
-  }
-}
-
-// ── Private widgets ────────────────────────────────────────────────────────────
-
-class _Logo extends StatelessWidget {
-  final double size;
-  const _Logo({this.size = 56});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: kOrange,
-        borderRadius: BorderRadius.circular(size * 0.24),
-      ),
-      child: Center(
-        child: Text(
-          'P',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: size * 0.55,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FeatureRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _FeatureRow({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: kOrange.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: kOrange, size: 18),
-        ),
-        const SizedBox(width: 14),
-        Text(label, style: const TextStyle(color: Color(0xFFCCCCCC), fontSize: 15)),
-      ],
     );
   }
 }

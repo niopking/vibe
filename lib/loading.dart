@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const kOrange = Color(0xFFFF8200);
+const kOrange = Color(0xFFF99427);
 const kDark = Color(0xFF161616);
 const kGrey = Color(0xFF2A2A2A);
 
@@ -94,7 +94,7 @@ class _LoadingScreenState extends State<LoadingScreen>
             children: [
               const Spacer(flex: 3),
 
-              // Logo + wordmark
+              // Logo + tagline
               Center(
                 child: Column(
                   children: [
@@ -102,58 +102,25 @@ class _LoadingScreenState extends State<LoadingScreen>
                       scale: _logoScale,
                       child: FadeTransition(
                         opacity: _logoFade,
-                        child: Container(
-                          width: 88,
-                          height: 88,
-                          decoration: BoxDecoration(
-                            color: kOrange,
-                            borderRadius: BorderRadius.circular(88 * 0.24),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'P',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 52,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
+                        child: Image.asset(
+                          'images/logobeztr.png',
+                          width: 130,
+                          height: 130,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    FadeTransition(
-                      opacity: _logoFade,
-                      child: RichText(
-                        text: const TextSpan(
+                    Transform.translate(
+                      offset: const Offset(0, -20),
+                      child: FadeTransition(
+                        opacity: _logoFade,
+                        child: const Text(
+                          'Pripremamo tvoj Vibe...',
                           style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
+                            color: Color(0xFF666666),
+                            fontSize: 15,
+                            letterSpacing: 0.3,
                           ),
-                          children: [
-                            TextSpan(
-                              text: 'Vibe',
-                              style: TextStyle(color: kOrange),
-                            ),
-                            TextSpan(
-                              text: 'News',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FadeTransition(
-                      opacity: _logoFade,
-                      child: const Text(
-                        'Vijesti prilagođene tebi',
-                        style: TextStyle(
-                          color: Color(0xFF666666),
-                          fontSize: 14,
-                          letterSpacing: 0.3,
                         ),
                       ),
                     ),
