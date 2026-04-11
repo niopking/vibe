@@ -129,7 +129,7 @@ class _ToggleTile extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontSize: 14)),
         value: value,
         onChanged: onChanged,
-        activeColor: kOrange,
+        activeThumbColor: kOrange,
         inactiveTrackColor: Colors.white12,
       ),
     );

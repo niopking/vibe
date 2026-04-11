@@ -217,9 +217,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 OutlinedButton(
                   onPressed: () async {
+                    final navigator = Navigator.of(context);
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('isGuest', true);
-                    if (mounted) Navigator.pushReplacementNamed(context, '/home');
+                    navigator.pushReplacementNamed('/home');
                   },
                   child: const Text('Nastavi kao gost'),
                 ),

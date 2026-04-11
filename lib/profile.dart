@@ -29,7 +29,7 @@ class ProfileScreen extends StatelessWidget {
                         color: kOrange,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: kOrange.withOpacity(0.3),
+                          color: kOrange.withValues(alpha: 0.3),
                           width: 3,
                         ),
                       ),
@@ -119,9 +119,9 @@ class ProfileScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withOpacity(0.25)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,

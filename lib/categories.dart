@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'jedna_kategorija.dart';
 
 const kOrange = Color(0xFFFF8200);
 const kDark = Color(0xFF161616);
@@ -9,16 +10,15 @@ class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
 
   static const List<Map<String, dynamic>> _categories = [
-    {'label': 'Tech', 'icon': Icons.computer_rounded},
-    {'label': 'Sport', 'icon': Icons.sports_soccer_rounded},
+    {'label': 'Showbizz', 'icon': Icons.movie_rounded},
     {'label': 'Lifestyle', 'icon': Icons.self_improvement_rounded},
-    {'label': 'Auto', 'icon': Icons.directions_car_rounded},
     {'label': 'Travel', 'icon': Icons.flight_rounded},
-    {'label': 'Health', 'icon': Icons.favorite_rounded},
-    {'label': 'Food', 'icon': Icons.restaurant_rounded},
-    {'label': 'Business', 'icon': Icons.business_center_rounded},
-    {'label': 'Entertainment', 'icon': Icons.movie_rounded},
-    {'label': 'Science', 'icon': Icons.science_rounded},
+    {'label': 'Tech', 'icon': Icons.computer_rounded},
+    {'label': 'Gastro', 'icon': Icons.restaurant_rounded},
+    {'label': 'Muzika', 'icon': Icons.music_note_rounded},
+    {'label': 'Sport', 'icon': Icons.sports_soccer_rounded},
+    {'label': 'Event', 'icon': Icons.event_rounded},
+    {'label': 'Promo', 'icon': Icons.campaign_rounded},
   ];
 
   @override
@@ -51,13 +51,20 @@ class CategoriesScreen extends StatelessWidget {
               itemCount: _categories.length,
               itemBuilder: (context, i) {
                 return GestureDetector(
-                  onTap: () {},
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CategoryNewsScreen(
+                        category: _categories[i]['label'] as String,
+                      ),
+                    ),
+                  ),
                   child: Container(
                     decoration: BoxDecoration(
                       color: kGrey,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.06),
+                        color: Colors.white.withValues(alpha: 0.06),
                       ),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -66,7 +73,7 @@ class CategoriesScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: kOrange.withOpacity(0.15),
+                            color: kOrange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(

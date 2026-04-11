@@ -32,9 +32,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_userId == null) {
-      _userId = ModalRoute.of(context)?.settings.arguments as String?;
-    }
+    _userId ??= ModalRoute.of(context)?.settings.arguments as String?;
   }
 
   void _toggle(String label) {
@@ -91,8 +89,8 @@ class _InterestsScreenState extends State<InterestsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
-              const _Logo(size: 42),
-              const SizedBox(height: 22),
+              const _Logo(size: 91),
+              const SizedBox(height: 4),
               Text('Izaberi interese', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               const Text(
@@ -108,7 +106,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: canContinue ? kOrange.withOpacity(0.15) : Colors.white.withOpacity(0.07),
+                      color: canContinue ? kOrange.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.07),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: canContinue ? kOrange : Colors.white24, width: 1),
                     ),
@@ -143,7 +141,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         decoration: BoxDecoration(
-                          color: isSelected ? kOrange.withOpacity(0.15) : kGrey,
+                          color: isSelected ? kOrange.withValues(alpha: 0.15) : kGrey,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected ? kOrange : Colors.transparent,
@@ -199,23 +197,15 @@ class _InterestsScreenState extends State<InterestsScreen> {
 
 class _Logo extends StatelessWidget {
   final double size;
-  const _Logo({this.size = 56});
+  const _Logo({this.size = 84});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Image.asset(
+      'images/logobeztr.png',
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: kOrange,
-        borderRadius: BorderRadius.circular(size * 0.24),
-      ),
-      child: Center(
-        child: Text(
-          'P',
-          style: TextStyle(color: Colors.white, fontSize: size * 0.55, fontWeight: FontWeight.w900),
-        ),
-      ),
+      fit: BoxFit.contain,
     );
   }
 }
