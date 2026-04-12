@@ -86,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', userDoc.id);
+      await prefs.remove('isGuest');
       if (_rememberMe) {
         await prefs.setBool('rememberMe', true);
         await prefs.setString('loggedInEmail', emailLower);

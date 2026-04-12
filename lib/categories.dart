@@ -11,6 +11,9 @@ const kTextMuted = Color(0xFF888888);
 final ValueNotifier<Set<String>> disabledCategoriesNotifier =
     ValueNotifier<Set<String>>(<String>{});
 
+// Global lock — when true, no category can be toggled; tapping navigates only.
+final ValueNotifier<bool> categoriesLockedNotifier = ValueNotifier<bool>(false);
+
 void toggleCategoryFilter(String label) {
   final current = Set<String>.from(disabledCategoriesNotifier.value);
   if (current.contains(label)) {
@@ -45,90 +48,133 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
-      child: ValueListenableBuilder<Set<String>>(
-        valueListenable: disabledCategoriesNotifier,
-        builder: (context, disabled, _) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: const Text(
-                  'Kategorije',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded,
-                        color: kTextMuted, size: 14),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        disabled.isEmpty
-                            ? 'Klikni ikonicu da sakriješ kategoriju'
-                            : '${disabled.length} sakrivenih kategorija',
-                        style: const TextStyle(
-                          color: kTextMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    if (disabled.isNotEmpty)
-                      GestureDetector(
-                        onTap: () =>
-                            disabledCategoriesNotifier.value = <String>{},
-                        child: const Text(
-                          'Vrati sve',
-                          style: TextStyle(
-                            color: kOrange,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: categoriesLockedNotifier,
+        builder: (context, isLocked, _) {
+          return ValueListenableBuilder<Set<String>>(
+            valueListenable: disabledCategoriesNotifier,
+            builder: (context, disabled, _) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Kategorije',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.6,
-                  ),
-                  itemCount: _categories.length,
-                  itemBuilder: (context, i) {
-                    final label = _categories[i]['label'] as String;
-                    final icon = _categories[i]['icon'] as IconData;
-                    final isDisabled = disabled.contains(label);
-
-                    return _CategoryTile(
-                      label: label,
-                      icon: icon,
-                      isDisabled: isDisabled,
-                      onIconTap: () => toggleCategoryFilter(label),
-                      onBoxTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              CategoryNewsScreen(category: label),
+                        GestureDetector(
+                          onTap: () => categoriesLockedNotifier.value = !isLocked,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isLocked
+                                  ? kOrange.withValues(alpha: 0.18)
+                                  : Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isLocked
+                                    ? kOrange.withValues(alpha: 0.45)
+                                    : Colors.white.withValues(alpha: 0.08),
+                                width: 0.9,
+                              ),
+                            ),
+                            child: Icon(
+                              isLocked
+                                  ? Icons.lock_rounded
+                                  : Icons.lock_open_rounded,
+                              size: 18,
+                              color: isLocked ? kOrange : kTextMuted,
+                            ),
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded,
+                            color: kTextMuted, size: 14),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            isLocked
+                                ? 'Kategorije su zaključane'
+                                : disabled.isEmpty
+                                    ? 'Klikni ikonicu da sakriješ kategoriju'
+                                    : '${disabled.length} sakrivenih kategorija',
+                            style: const TextStyle(
+                              color: kTextMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        if (disabled.isNotEmpty && !isLocked)
+                          GestureDetector(
+                            onTap: () =>
+                                disabledCategoriesNotifier.value = <String>{},
+                            child: const Text(
+                              'Vrati sve',
+                              style: TextStyle(
+                                color: kOrange,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 1.6,
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
+                      itemCount: _categories.length,
+                      itemBuilder: (context, i) {
+                        final label = _categories[i]['label'] as String;
+                        final icon = _categories[i]['icon'] as IconData;
+                        final isDisabled = disabled.contains(label);
+
+                        return _CategoryTile(
+                          label: label,
+                          icon: icon,
+                          isDisabled: isDisabled,
+                          isLocked: isLocked,
+                          onIconTap: isLocked
+                              ? null
+                              : () => toggleCategoryFilter(label),
+                          onBoxTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  CategoryNewsScreen(category: label),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -140,13 +186,15 @@ class _CategoryTile extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool isDisabled;
-  final VoidCallback onIconTap;
+  final bool isLocked;
+  final VoidCallback? onIconTap;
   final VoidCallback onBoxTap;
 
   const _CategoryTile({
     required this.label,
     required this.icon,
     required this.isDisabled,
+    required this.isLocked,
     required this.onIconTap,
     required this.onBoxTap,
   });
@@ -156,7 +204,7 @@ class _CategoryTile extends StatelessWidget {
     final iconBg = isDisabled
         ? Colors.white.withValues(alpha: 0.06)
         : kOrange.withValues(alpha: 0.15);
-    final iconColor = isDisabled ? kTextMuted : kOrange;
+    final iconColor = isDisabled ? kTextMuted : (isLocked ? kTextMuted : kOrange);
     final labelColor = isDisabled ? kTextMuted : Colors.white;
 
     return GestureDetector(
@@ -175,8 +223,7 @@ class _CategoryTile extends StatelessWidget {
                 : Colors.white.withValues(alpha: 0.06),
           ),
         ),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         child: Row(
           children: [
             GestureDetector(
@@ -187,12 +234,16 @@ class _CategoryTile extends StatelessWidget {
                 curve: Curves.easeOut,
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: iconBg,
+                  color: isLocked
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : iconBg,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isDisabled
                         ? Colors.white.withValues(alpha: 0.08)
-                        : kOrange.withValues(alpha: 0.35),
+                        : isLocked
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : kOrange.withValues(alpha: 0.35),
                     width: 0.8,
                   ),
                 ),

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'about_us.dart';
+import 'marketing.dart';
+import 'moj_vibe.dart';
 
 const kOrange = Color(0xFFFF8200);
 const kDark = Color(0xFF161616);
@@ -22,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _marketing = false;
   bool _darkMode = true;
   bool _loadingUser = true;
+  bool _isGuest = false;
 
   @override
   void initState() {
@@ -32,11 +36,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('userId') ?? '';
+    final isGuest = prefs.getBool('isGuest') ?? false;
     _marketing = prefs.getBool('marketing') ?? false;
     _darkMode = prefs.getBool('darkMode') ?? true;
 
     if (userId.isEmpty) {
       setState(() {
+        _isGuest = isGuest;
         _loadingUser = false;
       });
       return;
@@ -361,308 +367,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _submitArticle() {
-    final titleCtrl = TextEditingController();
-    final contentCtrl = TextEditingController();
-    final contactCtrl = TextEditingController();
-    String selectedCategory = 'Vijesti';
-    final formKey = GlobalKey<FormState>();
-    bool loading = false;
-
-    const categories = [
-      'Vijesti',
-      'Sport',
-      'Tehnologija',
-      'Kultura',
-      'Ekonomija',
-      'Zdravlje',
-      'Zabava',
-      'Ostalo',
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 24,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-              ),
-              child: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: kOrange.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.edit_note_rounded,
-                                color: kOrange, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text('Pošalji prijedlog članka',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Imaš priču? Pošalji nam prijedlog i naša redakcija će ga razmotriti.',
-                        style: TextStyle(color: kTextMuted, fontSize: 13),
-                      ),
-                      const SizedBox(height: 20),
-                      const _ModalLabel('NASLOV ČLANKA'),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: titleCtrl,
-                        style: const TextStyle(color: Colors.white),
-                        decoration:
-                            const InputDecoration(hintText: 'O čemu se radi?'),
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'Unesi naslov'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      const _ModalLabel('KATEGORIJA'),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: kGrey,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedCategory,
-                            isExpanded: true,
-                            dropdownColor: kGrey,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 15),
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                                color: kTextMuted),
-                            items: categories
-                                .map((c) => DropdownMenuItem(
-                                      value: c,
-                                      child: Text(c),
-                                    ))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) {
-                                setModalState(() => selectedCategory = v);
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const _ModalLabel('OPIS / SADRŽAJ'),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: contentCtrl,
-                        style: const TextStyle(color: Colors.white),
-                        maxLines: 4,
-                        decoration: const InputDecoration(
-                          hintText:
-                              'Ukratko opiši o čemu se radi, gdje si dobio info...',
-                          alignLabelWithHint: true,
-                        ),
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'Unesi opis'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      const _ModalLabel('KONTAKT (opcionalno)'),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: contactCtrl,
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          hintText: 'Email ili broj telefona',
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: loading
-                              ? null
-                              : () async {
-                                  if (!formKey.currentState!.validate()) return;
-                                  setModalState(() => loading = true);
-                                  try {
-                                    await FirebaseFirestore.instance
-                                        .collection('prijedlozi')
-                                        .add({
-                                      'naslov': titleCtrl.text.trim(),
-                                      'kategorija': selectedCategory,
-                                      'sadrzaj': contentCtrl.text.trim(),
-                                      'kontakt': contactCtrl.text.trim(),
-                                      'userId': _userId,
-                                      'email': _email,
-                                      'timestamp': FieldValue.serverTimestamp(),
-                                    });
-                                    if (ctx.mounted) {
-                                      Navigator.pop(ctx);
-                                    }
-                                    if (mounted) {
-                                      _showSnack(
-                                        context,
-                                        'Prijedlog uspješno poslan! Hvala ti.',
-                                        success: true,
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (ctx.mounted) {
-                                      _showSnack(ctx, 'Greška: $e');
-                                    }
-                                  } finally {
-                                    if (ctx.mounted) {
-                                      setModalState(() => loading = false);
-                                    }
-                                  }
-                                },
-                          child: loading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Text('Pošalji prijedlog'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   void _showAboutUs() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kOrange.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.info_outline_rounded,
-                  color: kOrange, size: 20),
-            ),
-            const SizedBox(width: 12),
-            const Text('O nama',
-                style: TextStyle(color: Colors.white, fontSize: 17)),
-          ],
-        ),
-        content: const Text(
-          'Vibe je moderna news platforma koja donosi najsvježije vijesti iz Bosne i Hercegovine i regiona.\n\n'
-          'Naš tim posvećen je istinitom, brzom i relevantnom izvještavanju. Vjerujemo u moć informisanosti i slobodu govora.\n\n'
-          'Verzija: 1.0.0\n'
-          '© 2025 Vibe. Sva prava zadržana.',
-          style: TextStyle(color: Color(0xFFCCCCCC), fontSize: 14, height: 1.6),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child:
-                const Text('Zatvori', style: TextStyle(color: kOrange)),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AboutUsScreen()),
     );
   }
 
   void _showMarketing() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kOrange.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.campaign_outlined,
-                  color: kOrange, size: 20),
-            ),
-            const SizedBox(width: 12),
-            const Text('Marketing',
-                style: TextStyle(color: Colors.white, fontSize: 17)),
-          ],
-        ),
-        content: StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Primaj obavještenja o posebnim ponudama, novostima i promotivnom sadržaju od Vibe News platforme.',
-                  style: TextStyle(
-                      color: Color(0xFFCCCCCC), fontSize: 14, height: 1.6),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Marketing obavještenja',
-                        style: TextStyle(color: Colors.white, fontSize: 14)),
-                    Switch(
-                      value: _marketing,
-                      onChanged: (v) async {
-                        setDialogState(() => _marketing = v);
-                        setState(() => _marketing = v);
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setBool('marketing', v);
-                      },
-                      activeThumbColor: kOrange,
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Zatvori', style: TextStyle(color: kOrange)),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MarketingScreen()),
     );
   }
 
@@ -782,51 +497,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return SafeArea(
       bottom: false,
       child: _loadingUser
-          ? const Center(
-              child: CircularProgressIndicator(color: kOrange),
-            )
-          : Column(
+          ? const Center(child: CircularProgressIndicator(color: kOrange))
+          : ListView(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPad + 96),
               children: [
-                // ── Scrollable content ───────────────────────────────────
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    children: [
-                const SizedBox(height: 8),
-
-                // ── Avatar + info ────────────────────────────────────────
-                Center(
+                // ── Profile header ──────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        kOrange.withValues(alpha: 0.14),
+                        kOrange.withValues(alpha: 0.04),
+                        kGrey,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: kOrange.withValues(alpha: 0.18),
+                    ),
+                  ),
                   child: Column(
                     children: [
                       Container(
-                        width: 80,
-                        height: 80,
+                        width: 74,
+                        height: 74,
                         decoration: BoxDecoration(
                           color: kOrange,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: kOrange.withValues(alpha: 0.3),
-                            width: 3,
-                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kOrange.withValues(alpha: 0.3),
+                              blurRadius: 24,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
                         child: Center(
                           child: Text(
                             _initials,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 34,
+                              fontSize: 30,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       Text(
                         _email.isNotEmpty ? _email : 'Gost',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       if (_age.isNotEmpty) ...[
@@ -834,7 +560,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           '$_age godina',
                           style: const TextStyle(
-                              color: kTextMuted, fontSize: 13),
+                            color: kTextMuted,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ],
@@ -843,37 +571,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 28),
 
-                // ── Moj nalog ────────────────────────────────────────────
+                // ── Moj nalog ───────────────────────────────────────
                 const _SectionLabel('MOJ NALOG'),
-                _ProfileTile(
-                  icon: Icons.mail_outline_rounded,
-                  title: 'Email adresa',
-                  subtitle: _email.isNotEmpty ? _email : 'Nije postavljeno',
-                  onTap: _editEmail,
-                ),
-                _ProfileTile(
-                  icon: Icons.lock_outline_rounded,
-                  title: 'Lozinka',
-                  subtitle: '••••••••',
-                  onTap: _changePassword,
-                ),
-                _ProfileTile(
-                  icon: Icons.cake_outlined,
-                  title: 'Godine',
-                  subtitle: _age.isNotEmpty ? '$_age god.' : 'Nije postavljeno',
-                  onTap: _editAge,
-                ),
-                _ProfileTile(
-                  icon: Icons.interests_outlined,
-                  title: 'Moji interesi',
-                  subtitle: 'Uredi kategorije koje pratiš',
-                  onTap: () => Navigator.pushNamed(context, '/interests'),
-                ),
+                if (_isGuest) ...[
+                  GestureDetector(
+                    onTap: () => Navigator.pushReplacementNamed(context, '/signup'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            kOrange.withValues(alpha: 0.18),
+                            kOrange.withValues(alpha: 0.06),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: kOrange.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_add_rounded,
+                              color: kOrange, size: 20),
+                          SizedBox(width: 10),
+                          Text('Napravi nalog',
+                              style: TextStyle(
+                                color: kOrange,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  _ProfileTile(
+                    icon: Icons.mail_outline_rounded,
+                    title: 'Email adresa',
+                    subtitle: _email.isNotEmpty ? _email : 'Nije postavljeno',
+                    onTap: _editEmail,
+                  ),
+                  _ProfileTile(
+                    icon: Icons.lock_outline_rounded,
+                    title: 'Lozinka',
+                    subtitle: '••••••••',
+                    onTap: _changePassword,
+                  ),
+                  _ProfileTile(
+                    icon: Icons.cake_outlined,
+                    title: 'Godine',
+                    subtitle: _age.isNotEmpty ? '$_age god.' : 'Nije postavljeno',
+                    onTap: _editAge,
+                  ),
+                ],
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // ── Izgled ───────────────────────────────────────────────
-                const _SectionLabel('IZGLED'),
+                // ── Postavke ────────────────────────────────────────
+                const _SectionLabel('POSTAVKE'),
                 _ToggleTile(
                   icon: Icons.dark_mode_outlined,
                   title: 'Tamni način',
@@ -884,22 +641,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     await prefs.setBool('darkMode', v);
                   },
                 ),
+                if (!_isGuest)
+                  _ProfileTile(
+                    icon: Icons.campaign_outlined,
+                    title: 'Marketing obavještenja',
+                    subtitle: _marketing ? 'Uključeno' : 'Isključeno',
+                    onTap: _showMarketing,
+                  ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // ── Moj Vibe ─────────────────────────────────────────────
-                const _SectionLabel('MOJ VIBE'),
-                _ProfileTile(
-                  icon: Icons.edit_note_rounded,
-                  title: 'Moj Vibe',
-                  subtitle: 'Imaš priču? Pošalji prijedlog članka!',
-                  onTap: _submitArticle,
-                  badge: 'NOVO',
-                ),
+                if (!_isGuest) ...[
+                  // ── Moj Vibe ────────────────────────────────────────
+                  const _SectionLabel('MOJ VIBE'),
+                  _ProfileTile(
+                    icon: Icons.edit_note_rounded,
+                    title: 'Moj Vibe',
+                    subtitle: 'Imaš priču? Javi nam!',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MojVibeScreen(
+                          userId: _userId,
+                          email: _email,
+                        ),
+                      ),
+                    ),
+                    badge: 'NOVO',
+                  ),
+                ],
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // ── O nama ───────────────────────────────────────────────
+                // ── O nama + Društvene mreže ────────────────────────
                 const _SectionLabel('O NAMA'),
                 _ProfileTile(
                   icon: Icons.info_outline_rounded,
@@ -907,127 +681,117 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: 'Ko smo i šta radimo',
                   onTap: _showAboutUs,
                 ),
-
-                const SizedBox(height: 16),
-
-                // ── Marketing ────────────────────────────────────────────
-                const _SectionLabel('MARKETING'),
-                _ProfileTile(
-                  icon: Icons.campaign_outlined,
-                  title: 'Marketing obavještenja',
-                  subtitle: 'Ponude, novosti i promotivni sadržaj',
-                  onTap: _showMarketing,
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Društvene mreže ──────────────────────────────────────
-                const _SectionLabel('DRUŠTVENE MREŽE'),
+                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
                   decoration: BoxDecoration(
                     color: kGrey,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  child: Column(
                     children: [
-                      _SocialIcon(
-                        icon: Icons.photo_camera_outlined,
-                        color: const Color(0xFFE1306C),
-                        tooltip: 'Instagram',
-                        onTap: () => _copySocialLink(
-                            'Instagram', 'https://instagram.com/vibenews.ba'),
+                      const Text(
+                        'PRATITE NAS',
+                        style: TextStyle(
+                          color: kTextMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
                       ),
-                      _SocialIcon(
-                        icon: Icons.facebook_outlined,
-                        color: const Color(0xFF1877F2),
-                        tooltip: 'Facebook',
-                        onTap: () => _copySocialLink(
-                            'Facebook', 'https://facebook.com/vibenews'),
-                      ),
-                      _SocialIcon(
-                        icon: Icons.alternate_email_rounded,
-                        color: Colors.white,
-                        tooltip: 'X (Twitter)',
-                        onTap: () =>
-                            _copySocialLink('X', 'https://x.com/vibenews'),
-                      ),
-                      _SocialIcon(
-                        icon: Icons.play_circle_outline_rounded,
-                        color: const Color(0xFF69C9D0),
-                        tooltip: 'TikTok',
-                        onTap: () => _copySocialLink(
-                            'TikTok', 'https://tiktok.com/@vibenews.ba'),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _SocialIcon(
+                            icon: Icons.camera_alt_rounded,
+                            color: const Color(0xFFE1306C),
+                            label: 'Instagram',
+                            onTap: () => _copySocialLink('Instagram',
+                                'https://instagram.com/vibenews.ba'),
+                          ),
+                          _SocialIcon(
+                            icon: Icons.facebook_rounded,
+                            color: const Color(0xFF1877F2),
+                            label: 'Facebook',
+                            onTap: () => _copySocialLink('Facebook',
+                                'https://facebook.com/vibenews'),
+                          ),
+                          _SocialIcon(
+                            icon: Icons.close_rounded,
+                            color: Colors.white,
+                            label: 'X',
+                            onTap: () => _copySocialLink(
+                                'X', 'https://x.com/vibenews'),
+                          ),
+                          _SocialIcon(
+                            icon: Icons.music_note_rounded,
+                            color: const Color(0xFF69C9D0),
+                            label: 'TikTok',
+                            onTap: () => _copySocialLink('TikTok',
+                                'https://tiktok.com/@vibenews.ba'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 28),
 
-                // ── Odjavi se ────────────────────────────────────────────
-                GestureDetector(
-                  onTap: _logout,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.25)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.logout_rounded,
-                            color: Colors.redAccent, size: 18),
-                        SizedBox(width: 8),
-                        Text('Odjavi se',
-                            style: TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            )),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // ── Obriši nalog ─────────────────────────────────────────
-                GestureDetector(
-                  onTap: _deleteAccount,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.12)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.delete_outline_rounded,
-                            color: Color(0xFFE57373), size: 18),
-                        SizedBox(width: 8),
-                        Text('Obriši nalog',
-                            style: TextStyle(
-                              color: Color(0xFFE57373),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            )),
-                      ],
+                if (!_isGuest) ...[
+                  // ── Odjavi se ───────────────────────────────────────
+                  GestureDetector(
+                    onTap: _logout,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.logout_rounded,
+                              color: Colors.redAccent, size: 18),
+                          SizedBox(width: 8),
+                          Text('Odjavi se',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              )),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-
-                SizedBox(height: 16 + bottomPad + 80),
-                    ],
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: _deleteAccount,
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          'Obriši nalog',
+                          style: TextStyle(
+                            color: kTextMuted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            decoration: TextDecoration.underline,
+                            decorationColor: kTextMuted,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
     );
@@ -1043,7 +807,7 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 4),
+      padding: const EdgeInsets.only(bottom: 10, top: 4),
       child: Text(
         label,
         style: const TextStyle(
@@ -1078,21 +842,29 @@ class _ProfileTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: kGrey,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: ListTile(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
             color: kOrange.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+              color: kOrange.withValues(alpha: 0.2),
+              width: 0.6,
+            ),
           ),
           child: Icon(icon, color: kOrange, size: 20),
         ),
         title: Text(title,
-            style: const TextStyle(color: Colors.white, fontSize: 14)),
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600)),
         subtitle: subtitle != null
             ? Text(subtitle!,
                 style: const TextStyle(color: kTextMuted, fontSize: 12))
@@ -1148,20 +920,28 @@ class _ToggleTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: kGrey,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14),
         secondary: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
             color: kOrange.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+              color: kOrange.withValues(alpha: 0.2),
+              width: 0.6,
+            ),
           ),
           child: Icon(icon, color: kOrange, size: 20),
         ),
         title: Text(title,
-            style: const TextStyle(color: Colors.white, fontSize: 14)),
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600)),
         value: value,
         onChanged: onChanged,
         activeThumbColor: kOrange,
@@ -1174,50 +954,48 @@ class _ToggleTile extends StatelessWidget {
 class _SocialIcon extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final String tooltip;
+  final String label;
   final VoidCallback onTap;
 
   const _SocialIcon({
     required this.icon,
     required this.color,
-    required this.tooltip,
+    required this.label,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withValues(alpha: 0.25),
+                width: 0.8,
+              ),
+            ),
+            child: Icon(icon, color: color, size: 22),
           ),
-          child: Icon(icon, color: color, size: 24),
-        ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.7),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ModalLabel extends StatelessWidget {
-  final String text;
-  const _ModalLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: kOrange,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-}

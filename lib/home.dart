@@ -79,8 +79,8 @@ class _BottomNav extends StatelessWidget {
     const items = [
       _NavItem(icon: Icons.home_rounded, label: 'Početna'),
       _NavItem(icon: Icons.grid_view_rounded, label: 'Kategorije'),
-      _NavItem(icon: Icons.bookmark_outline_rounded, label: 'Sačuvano'),
-      _NavItem(icon: Icons.person_outline_rounded, label: 'Profil'),
+      _NavItem(icon: Icons.bookmark_outline_rounded, selectedIcon: Icons.bookmark_rounded, label: 'Sačuvano'),
+      _NavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profil'),
     ];
 
     return Container(
@@ -113,23 +113,12 @@ class _BottomNav extends StatelessWidget {
                 child: InkWell(
                   onTap: () => onTap(i),
                   borderRadius: BorderRadius.circular(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(items[i].icon,
-                          size: 23,
-                          color: selected ? kOrange : kTextMuted),
-                      const SizedBox(height: 3),
-                      Text(items[i].label,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: selected ? kOrange : kTextMuted,
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          )),
-                    ],
-                  ),
+                  child: Icon(
+                      selected && items[i].selectedIcon != null
+                          ? items[i].selectedIcon!
+                          : items[i].icon,
+                      size: 30,
+                      color: selected ? kOrange : kTextMuted),
                 ),
               );
             }),
@@ -142,8 +131,9 @@ class _BottomNav extends StatelessWidget {
 
 class _NavItem {
   final IconData icon;
+  final IconData? selectedIcon;
   final String label;
-  const _NavItem({required this.icon, required this.label});
+  const _NavItem({required this.icon, this.selectedIcon, required this.label});
 }
 
 // ── Home page ──────────────────────────────────────────────────────────────────
@@ -212,7 +202,7 @@ class _HomePageState extends State<_HomePage> {
                   ),
               Container(
                 height: 0.6,
-                margin: EdgeInsets.zero,
+                margin: const EdgeInsets.only(top: 7),
                 color: Colors.white.withValues(alpha: 0.12),
               ),
               Expanded(
@@ -431,20 +421,20 @@ class _TopBarState extends State<_TopBar> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(
         children: [
           // Logo shrinks when expanded
           AnimatedContainer(
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeInOut,
-            width: _expanded ? 0 : 34,
+            width: _expanded ? 0 : 78,
             child: ClipRect(
               child: AnimatedOpacity(
                 opacity: _expanded ? 0 : 1,
                 duration: const Duration(milliseconds: 160),
                 child: Image.asset('images/logobeztr.png',
-                    height: 34, fit: BoxFit.contain),
+                    height: 30, fit: BoxFit.contain),
               ),
             ),
           ),
@@ -513,54 +503,6 @@ class _TopBarState extends State<_TopBar> {
             ),
           ),
 
-          // Bell shrinks away when search expands
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeInOut,
-            width: _expanded ? 0 : 12,
-          ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeInOut,
-            width: _expanded ? 0 : 40,
-            child: ClipRect(
-              child: AnimatedOpacity(
-                opacity: _expanded ? 0 : 1,
-                duration: const Duration(milliseconds: 160),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: kGrey,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      child: const Icon(Icons.notifications_none_rounded,
-                          color: Colors.white70, size: 22),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: kOrange,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: kDark, width: 1.2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
