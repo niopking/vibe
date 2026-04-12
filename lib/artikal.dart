@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'home.dart';
+import 'models.dart';
+import 'saved_service.dart';
 
 const kOrange = Color(0xFFFF8200);
 const kDark = Color(0xFF161616);
@@ -22,6 +23,7 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
   late final ScrollController _scrollController;
   double _scroll = 0;
   late List<Map<String, dynamic>> _comments;
+  bool _showAllComments = false;
 
   static const _imageHeight = 320.0;
   static const _overlap = 32.0;
@@ -273,10 +275,53 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                           ),
                         ),
 
-                      ..._comments.map((k) => _KomentarItem(
-                            osoba: k['osoba'] as String? ?? '',
-                            tekst: k['tekst'] as String? ?? '',
-                          )),
+                      ...(_showAllComments
+                              ? _comments
+                              : _comments.take(3).toList())
+                          .map((k) => _KomentarItem(
+                                osoba: k['osoba'] as String? ?? '',
+                                tekst: k['tekst'] as String? ?? '',
+                              )),
+
+                      if (_comments.length > 3 && !_showAllComments)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => _showAllComments = true),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 14),
+                              decoration: BoxDecoration(
+                                color: kGrey,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white
+                                      .withValues(alpha: 0.07),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                      Icons.expand_more_rounded,
+                                      color: kOrange,
+                                      size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Vidi još ${_comments.length - 3} komentara',
+                                    style: const TextStyle(
+                                      color: kOrange,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
 
                       const SizedBox(height: 16),
 
@@ -365,7 +410,7 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
             ),
           ),
 
-          // ── 3. Fading top bar: logo + search + bell ─────────────────────
+          // ── 3. Fading top bar ────────────────────────────────────────────
           Positioned(
             top: 0,
             left: 0,
@@ -389,7 +434,7 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
                     child: Row(
                       children: [
-                        // Back arrow replaces logo space
+                        // Back
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
                           child: Container(
@@ -399,14 +444,38 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                               color: Colors.black.withValues(alpha: 0.35),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color:
-                                    Colors.white.withValues(alpha: 0.18),
+                                color: Colors.white.withValues(alpha: 0.18),
                                 width: 0.8,
                               ),
                             ),
                             child: const Icon(Icons.arrow_back_rounded,
                                 color: Colors.white, size: 20),
                           ),
+                        ),
+                        const Spacer(),
+                        // Share
+                        GestureDetector(
+                          onTap: () => _showShareSheet(context),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: const Icon(Icons.ios_share_rounded,
+                                color: Colors.white, size: 18),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        // Bookmark
+                        _BookmarkButton(
+                          article: widget.article,
+                          glass: true,
                         ),
                       ],
                     ),
@@ -416,7 +485,7 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
             ),
           ),
 
-          // ── 4. Persistent back button (fades IN as top bar fades OUT) ───
+          // ── 4. Persistent back + actions (fade IN as top bar fades OUT) ──
           Positioned(
             top: safeTop + 8,
             left: 12,
@@ -431,12 +500,39 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                     color: kGrey,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
+                        color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: const Icon(Icons.arrow_back_rounded,
                       color: Colors.white, size: 20),
                 ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: safeTop + 8,
+            right: 12,
+            child: Opacity(
+              opacity: _backOpacity,
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _showShareSheet(context),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: kGrey,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      child: const Icon(Icons.ios_share_rounded,
+                          color: Colors.white, size: 18),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _BookmarkButton(article: widget.article, glass: false),
+                ],
               ),
             ),
           ),
@@ -483,6 +579,194 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
     );
   }
 
+  void _showShareSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kGrey,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _ShareSheet(article: widget.article),
+    );
+  }
+}
+
+// ── Bookmark button ────────────────────────────────────────────────────────────
+
+class _BookmarkButton extends StatefulWidget {
+  final Article article;
+  final bool glass; // true = overlay style, false = solid kGrey
+  const _BookmarkButton({required this.article, required this.glass});
+
+  @override
+  State<_BookmarkButton> createState() => _BookmarkButtonState();
+}
+
+class _BookmarkButtonState extends State<_BookmarkButton> {
+  @override
+  void initState() {
+    super.initState();
+    SavedArticlesService.instance.addListener(_onChanged);
+  }
+
+  void _onChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    SavedArticlesService.instance.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSaved =
+        SavedArticlesService.instance.isSaved(widget.article.id);
+    return GestureDetector(
+      onTap: () => SavedArticlesService.instance.toggle(widget.article),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: widget.glass
+              ? Colors.black.withValues(alpha: 0.35)
+              : kGrey,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSaved
+                ? kOrange.withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: widget.glass ? 0.18 : 0.1),
+            width: widget.glass ? 0.8 : 1,
+          ),
+        ),
+        child: Icon(
+          isSaved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+          color: isSaved ? kOrange : Colors.white,
+          size: 20,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Share sheet ────────────────────────────────────────────────────────────────
+
+class _ShareSheet extends StatelessWidget {
+  final Article article;
+  const _ShareSheet({required this.article});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Article preview row
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Image.network(
+                    article.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        Container(color: kGreyLight),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  article.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _SheetOption(
+            icon: Icons.bookmark_outline_rounded,
+            label: SavedArticlesService.instance.isSaved(article.id)
+                ? 'Ukloni iz sačuvanih'
+                : 'Sačuvaj vijest',
+            onTap: () {
+              SavedArticlesService.instance.toggle(article);
+              Navigator.pop(context);
+            },
+          ),
+          _SheetOption(
+            icon: Icons.copy_rounded,
+            label: 'Kopiraj naslov',
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Naslov kopiran'),
+                  duration: Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          ),
+          _SheetOption(
+            icon: Icons.share_rounded,
+            label: 'Podijeli',
+            onTap: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SheetOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _SheetOption(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: kGreyLight,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: kOrange, size: 20),
+            const SizedBox(width: 14),
+            Text(label,
+                style: const TextStyle(color: Colors.white, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ── Article bottom nav ─────────────────────────────────────────────────────────
@@ -491,13 +775,18 @@ class _ArticleBottomNav extends StatelessWidget {
   final VoidCallback onBack;
   const _ArticleBottomNav({required this.onBack});
 
+  void _goToSaved(BuildContext context) {
+    homeTabIndex.value = 2;
+    Navigator.of(context).popUntil(ModalRoute.withName('/home'));
+  }
+
   @override
   Widget build(BuildContext context) {
     const items = [
-      _NavItem(icon: Icons.home_rounded, label: 'Početna'),
-      _NavItem(icon: Icons.grid_view_rounded, label: 'Kategorije'),
-      _NavItem(icon: Icons.settings_outlined, label: 'Podešavanja'),
-      _NavItem(icon: Icons.person_outline_rounded, label: 'Profil'),
+      (icon: Icons.home_rounded, label: 'Početna', idx: 0),
+      (icon: Icons.grid_view_rounded, label: 'Kategorije', idx: 1),
+      (icon: Icons.bookmark_outline_rounded, label: 'Sačuvano', idx: 2),
+      (icon: Icons.person_outline_rounded, label: 'Profil', idx: 3),
     ];
 
     return Container(
@@ -524,34 +813,34 @@ class _ArticleBottomNav extends StatelessWidget {
         child: SizedBox(
           height: 64,
           child: Row(
-            children: List.generate(items.length, (i) {
-              final selected = i == 0; // Home is always "selected" in articles
+            children: items.map((item) {
+              final isHome = item.idx == 0;
               return Expanded(
                 child: InkWell(
-                  onTap: onBack,
+                  onTap: item.idx == 2
+                      ? () => _goToSaved(context)
+                      : onBack,
                   borderRadius: BorderRadius.circular(20),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(items[i].icon,
+                      Icon(item.icon,
                           size: 23,
-                          color: selected ? kOrange : kTextMuted),
+                          color: isHome ? kOrange : kTextMuted),
                       const SizedBox(height: 3),
-                      Text(
-                        items[i].label,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: selected ? kOrange : kTextMuted,
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                      ),
+                      Text(item.label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isHome ? kOrange : kTextMuted,
+                            fontWeight: isHome
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          )),
                     ],
                   ),
                 ),
               );
-            }),
+            }).toList(),
           ),
         ),
       ),
@@ -559,13 +848,24 @@ class _ArticleBottomNav extends StatelessWidget {
   }
 }
 
-class _NavItem {
-  final IconData icon;
-  final String label;
-  const _NavItem({required this.icon, required this.label});
-}
-
 // ── Comment card ───────────────────────────────────────────────────────────────
+
+const _kAvatarColors = [
+  Color(0xFF6B8CFF),
+  Color(0xFF8B5CF6),
+  Color(0xFF10B981),
+  Color(0xFFF59E0B),
+  Color(0xFFEF4444),
+  Color(0xFF3B82F6),
+  Color(0xFF14B8A6),
+  Color(0xFFEC4899),
+];
+
+Color _avatarColor(String name) {
+  if (name.isEmpty) return kTextMuted;
+  final idx = name.codeUnits.fold(0, (a, b) => a + b) % _kAvatarColors.length;
+  return _kAvatarColors[idx];
+}
 
 class _KomentarItem extends StatelessWidget {
   final String osoba;
@@ -574,6 +874,11 @@ class _KomentarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _avatarColor(osoba);
+    final initial = osoba.isNotEmpty ? osoba.trim()[0].toUpperCase() : '?';
+    final displayName =
+        osoba.isEmpty || osoba == 'TODO' ? 'Korisnik' : osoba;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       decoration: BoxDecoration(
@@ -581,38 +886,60 @@ class _KomentarItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Avatar
           Container(
-            width: 3,
-            margin: const EdgeInsets.only(top: 3, right: 12),
-            height: 16,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: kOrange.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(2),
+              color: color.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(
+                  color: color.withValues(alpha: 0.45), width: 1.5),
+            ),
+            child: Center(
+              child: Text(
+                initial,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  osoba,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'nedavno',
+                      style: TextStyle(color: kTextMuted, fontSize: 10),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   tekst,
                   style: const TextStyle(
-                    color: Color(0xFFBBBBBB),
+                    color: Color(0xFFCCCCCC),
                     fontSize: 14,
-                    height: 1.55,
+                    height: 1.6,
                   ),
                 ),
               ],

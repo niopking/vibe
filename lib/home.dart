@@ -1,84 +1,17 @@
 import 'package:flutter/material.dart';
 import 'categories.dart';
-import 'settings.dart';
+import 'saved.dart';
 import 'profile.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'artikal.dart';
 import 'jedna_kategorija.dart';
+import 'models.dart';
+import 'saved_service.dart';
 
 const kOrange = Color(0xFFFF8200);
 const kDark = Color(0xFF161616);
 const kGrey = Color(0xFF2A2A2A);
 const kGreyLight = Color(0xFF3A3A3A);
 const kTextMuted = Color(0xFF888888);
-
-// Category mapping
-const Map<int, String> categoryMap = {
-  1: 'Tech',
-  2: 'Lifestyle',
-  3: 'Auto',
-  4: 'Travel',
-};
-
-// ── Data model ─────────────────────────────────────────────────────────────────
-
-class Article {
-  final String id;
-  final String title;
-  final String category;
-  final String date;
-  final String imageUrl;
-  final List<Map<String, dynamic>> comments;
-  final String tekst;
-  final int timestamp;
-  const Article({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.date,
-    required this.imageUrl,
-    this.comments = const [],
-    this.tekst = '',
-    required this.timestamp,
-  });
-}
-
-// Function to format date
-String formatDate(int timestamp) {
-  final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-  final months = [
-    'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
-    'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'
-  ];
-  return '${date.day}. ${months[date.month - 1]} ${date.year}.';
-}
-
-// Function to fetch articles from Firestore
-Future<List<Article>> fetchArticles() async {
-  final snapshot = await FirebaseFirestore.instance.collection('vjesti').get();
-  return snapshot.docs.map((doc) {
-    final data = doc.data();
-    final datum = data['datum'] as int;
-    final kategorija = data['kategorija'] as int;
-    final naslov = data['naslov'] as String;
-    final slika = data['slika'] as String;
-    final tekst = data['tekst'] as String? ?? '';
-    final rawKomentari = data['komentari'];
-    final komentari = rawKomentari is List
-        ? rawKomentari.map((e) => Map<String, dynamic>.from(e as Map)).toList()
-        : <Map<String, dynamic>>[];
-    return Article(
-      id: doc.id,
-      title: naslov,
-      category: categoryMap[kategorija] ?? 'Unknown',
-      date: formatDate(datum),
-      imageUrl: slika,
-      comments: komentari,
-      tekst: tekst,
-      timestamp: datum,
-    );
-  }).toList();
-}
 
 // ── Main screen shell ──────────────────────────────────────────────────────────
 
@@ -95,9 +28,24 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = const [
     _HomePage(),
     CategoriesScreen(),
-    SettingsScreen(),
+    SavedScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    homeTabIndex.addListener(_onTabChange);
+    SavedArticlesService.instance.loadFromFirebase();
+  }
+
+  void _onTabChange() => setState(() => _selectedIndex = homeTabIndex.value);
+
+  @override
+  void dispose() {
+    homeTabIndex.removeListener(_onTabChange);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       bottomNavigationBar: _BottomNav(
         selectedIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
+        onTap: (i) {
+          homeTabIndex.value = i;
+          setState(() => _selectedIndex = i);
+        },
       ),
     );
   }
@@ -128,7 +79,7 @@ class _BottomNav extends StatelessWidget {
     const items = [
       _NavItem(icon: Icons.home_rounded, label: 'Početna'),
       _NavItem(icon: Icons.grid_view_rounded, label: 'Kategorije'),
-      _NavItem(icon: Icons.settings_outlined, label: 'Podešavanja'),
+      _NavItem(icon: Icons.bookmark_outline_rounded, label: 'Sačuvano'),
       _NavItem(icon: Icons.person_outline_rounded, label: 'Profil'),
     ];
 
@@ -206,6 +157,8 @@ class _HomePage extends StatefulWidget {
 
 class _HomePageState extends State<_HomePage> {
   late Future<List<Article>> _articlesFuture;
+  bool _searchOpen = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -231,34 +184,45 @@ class _HomePageState extends State<_HomePage> {
           );
         }
 
-        final articles = List<Article>.from(snapshot.data!)
+        final allArticles = List<Article>.from(snapshot.data!)
           ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-        // Group by category (preserve insertion order = recency order)
-        final Map<String, List<Article>> byCategory = {};
-        for (final a in articles) {
-          byCategory.putIfAbsent(a.category, () => []).add(a);
-        }
+        return ValueListenableBuilder<Set<String>>(
+          valueListenable: disabledCategoriesNotifier,
+          builder: (context, disabled, _) {
+            final articles = allArticles
+                .where((a) => !disabled.contains(a.category))
+                .toList();
 
-        // Latest = top 5 most recent
-        final latest = articles.take(5).toList();
+            final Map<String, List<Article>> byCategory = {};
+            for (final a in articles) {
+              byCategory.putIfAbsent(a.category, () => []).add(a);
+            }
 
-        return SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              const _TopBar(),
+            final latest = articles.take(5).toList();
+
+            return SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  _TopBar(
+                    onOpen: () => setState(() { _searchOpen = true; _searchQuery = ''; }),
+                    onClose: () => setState(() { _searchOpen = false; _searchQuery = ''; }),
+                    onChanged: (q) => setState(() => _searchQuery = q),
+                  ),
               Container(
                 height: 0.6,
                 margin: EdgeInsets.zero,
                 color: Colors.white.withValues(alpha: 0.12),
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.only(bottom: 110),
+                child: Stack(
                   children: [
-                    const SizedBox(height: 18),
-                    _LatestSection(articles: latest),
+                    ListView(
+                      padding: const EdgeInsets.only(bottom: 110),
+                      children: [
+                        const SizedBox(height: 18),
+                        _LatestSection(articles: latest),
                     const SizedBox(height: 26),
                     ...() {
                       final entries = byCategory.entries.toList();
@@ -287,19 +251,182 @@ class _HomePageState extends State<_HomePage> {
                     }(),
                   ],
                 ),
-              ),
+                // Search panel — slides up from below top bar
+                AnimatedSlide(
+                  offset: _searchOpen ? Offset.zero : const Offset(0, 1),
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: _searchOpen ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: _SearchPanel(
+                      query: _searchQuery,
+                      articles: allArticles,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
             ],
           ),
+        );
+          },
         );
       },
     );
   }
 }
 
+// ── Search panel ──────────────────────────────────────────────────────────────
+
+class _SearchPanel extends StatelessWidget {
+  final String query;
+  final List<Article> articles;
+  const _SearchPanel({required this.query, required this.articles});
+
+  @override
+  Widget build(BuildContext context) {
+    final results = query.isEmpty
+        ? <Article>[]
+        : articles
+            .where((a) =>
+                a.title.toLowerCase().contains(query.toLowerCase()) ||
+                a.category.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+
+    return Container(
+      color: kDark,
+      child: results.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_rounded,
+                      color: kTextMuted, size: 48),
+                  const SizedBox(height: 12),
+                  Text(
+                    query.isEmpty
+                        ? 'Počni kucati za pretragu...'
+                        : 'Nema rezultata za "$query"',
+                    style: const TextStyle(
+                        color: kTextMuted, fontSize: 14),
+                  ),
+                ],
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
+              itemCount: results.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                final a = results[i];
+                return GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => ArtikalScreen(article: a)),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: kGrey,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            bottomLeft: Radius.circular(16),
+                          ),
+                          child: SizedBox(
+                            width: 100,
+                            height: 88,
+                            child: Image.network(a.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    Container(color: kGreyLight)),
+                          ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _CategoryBadge(label: a.category),
+                                const SizedBox(height: 6),
+                                Text(a.title,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.35,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis),
+                                const SizedBox(height: 6),
+                                Text(a.date,
+                                    style: const TextStyle(
+                                        color: kTextMuted, fontSize: 10)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
 // ── Top bar ────────────────────────────────────────────────────────────────────
 
-class _TopBar extends StatelessWidget {
-  const _TopBar();
+class _TopBar extends StatefulWidget {
+  final VoidCallback onOpen;
+  final VoidCallback onClose;
+  final ValueChanged<String> onChanged;
+  const _TopBar({
+    required this.onOpen,
+    required this.onClose,
+    required this.onChanged,
+  });
+
+  @override
+  State<_TopBar> createState() => _TopBarState();
+}
+
+class _TopBarState extends State<_TopBar> {
+  bool _expanded = false;
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
+
+  void _open() {
+    setState(() => _expanded = true);
+    widget.onOpen();
+    Future.delayed(const Duration(milliseconds: 180),
+        () { if (mounted) _focus.requestFocus(); });
+  }
+
+  void _close() {
+    setState(() => _expanded = false);
+    _controller.clear();
+    _focus.unfocus();
+    widget.onChanged('');
+    widget.onClose();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -307,19 +434,33 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
         children: [
-          Image.asset(
-            'images/logobeztr.png',
-            height: 34,
-            fit: BoxFit.contain,
+          // Logo shrinks when expanded
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOut,
+            width: _expanded ? 0 : 34,
+            child: ClipRect(
+              child: AnimatedOpacity(
+                opacity: _expanded ? 0 : 1,
+                duration: const Duration(milliseconds: 160),
+                child: Image.asset('images/logobeztr.png',
+                    height: 34, fit: BoxFit.contain),
+              ),
+            ),
           ),
-          const SizedBox(width: 12),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOut,
+            width: _expanded ? 0 : 12,
+          ),
+
+          // Search bar — expands to full width
           Expanded(
             child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SearchScreen()),
-              ),
-              child: Container(
+              onTap: _expanded ? null : _open,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeInOut,
                 height: 40,
                 decoration: BoxDecoration(
                   color: kGrey,
@@ -329,48 +470,96 @@ class _TopBar extends StatelessWidget {
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.search_rounded, color: kTextMuted, size: 18),
-                    SizedBox(width: 8),
-                    Text('Pretraži vijesti...',
-                        style: TextStyle(color: kTextMuted, fontSize: 13)),
+                    const Icon(Icons.search_rounded,
+                        color: kTextMuted, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _expanded
+                          ? TextField(
+                              controller: _controller,
+                              focusNode: _focus,
+                              cursorColor: Colors.white,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 13),
+                              onChanged: widget.onChanged,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: true,
+                                fillColor: Colors.transparent,
+                                hintText: 'Pretraži vijesti...',
+                                hintStyle: TextStyle(
+                                    color: kTextMuted, fontSize: 13),
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            )
+                          : const Text('Pretraži vijesti...',
+                              style: TextStyle(
+                                  color: kTextMuted, fontSize: 13)),
+                    ),
+                    if (_expanded)
+                      GestureDetector(
+                        onTap: _close,
+                        child: const Icon(Icons.close_rounded,
+                            color: kTextMuted, size: 18),
+                      ),
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: kGrey,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                  ),
+
+          // Bell shrinks away when search expands
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOut,
+            width: _expanded ? 0 : 12,
+          ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOut,
+            width: _expanded ? 0 : 40,
+            child: ClipRect(
+              child: AnimatedOpacity(
+                opacity: _expanded ? 0 : 1,
+                duration: const Duration(milliseconds: 160),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: kGrey,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: const Icon(Icons.notifications_none_rounded,
+                          color: Colors.white70, size: 22),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: kOrange,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: kDark, width: 1.2),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.notifications_none_rounded,
-                    color: Colors.white70, size: 22),
               ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: kOrange,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: kDark, width: 1.2),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

@@ -70,6 +70,7 @@ class _SignupScreenState extends State<SignupScreen> {
         'age': int.parse(_ageCtrl.text),
         'password': _passCtrl.text, // Note: Storing plain password is insecure
         'interests': [],
+        'sacuvano': [],
         'createdAt': FieldValue.serverTimestamp(),
       });
 
