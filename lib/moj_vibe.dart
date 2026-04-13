@@ -6,6 +6,9 @@ const _kDark = Color(0xFF161616);
 const _kGrey = Color(0xFF2A2A2A);
 const _kTextMuted = Color(0xFF888888);
 
+const _heroImage =
+    'https://vibeadria.com/wp-content/uploads/2025/08/Vibe-Adria-Wallpaper-1-1044x587.png';
+
 const _categories = [
   'Vijesti',
   'Sport',
@@ -87,29 +90,112 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
     }
   }
 
+  static const _imageHeight = 260.0;
+  static const _overlap = 28.0;
+
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+
+    if (_sent) {
+      return Scaffold(
+        backgroundColor: _kDark,
+        body: SafeArea(
+          child: _SuccessView(onBack: () => Navigator.pop(context)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: _kDark,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _VibeAppBar(onBack: () => Navigator.pop(context)),
-            Expanded(
-              child: _sent ? _SuccessView(onBack: () => Navigator.pop(context)) : _FormView(
-                formKey: _formKey,
-                titleCtrl: _titleCtrl,
-                contentCtrl: _contentCtrl,
-                contactCtrl: _contactCtrl,
-                selectedCategory: _selectedCategory,
-                loading: _loading,
-                onCategoryChanged: (v) => setState(() => _selectedCategory = v),
-                onSubmit: _submit,
+      body: Stack(
+        children: [
+          // ── Fixed hero image ────────────────────────────────────
+          Positioned(
+            top: 0, left: 0, right: 0,
+            height: _imageHeight,
+            child: Image.network(
+              _heroImage,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: _kGrey,
+                child: const Center(
+                  child: Icon(Icons.image_outlined,
+                      color: _kTextMuted, size: 48),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+
+          // ── Form scrolls over image ─────────────────────────────
+          _FormView(
+            formKey: _formKey,
+            titleCtrl: _titleCtrl,
+            contentCtrl: _contentCtrl,
+            contactCtrl: _contactCtrl,
+            selectedCategory: _selectedCategory,
+            loading: _loading,
+            imageOffset: _imageHeight - _overlap,
+            onCategoryChanged: (v) => setState(() => _selectedCategory = v),
+            onSubmit: _submit,
+          ),
+
+          // ── Floating app bar ────────────────────────────────────
+          Positioned(
+            top: topPad,
+            left: 0,
+            right: 0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.12)),
+                      ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 18),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.favorite_rounded,
+                            color: _kOrange, size: 16),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Vibe',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -124,6 +210,7 @@ class _FormView extends StatelessWidget {
   final TextEditingController contactCtrl;
   final String selectedCategory;
   final bool loading;
+  final double imageOffset;
   final ValueChanged<String> onCategoryChanged;
   final VoidCallback onSubmit;
 
@@ -134,6 +221,7 @@ class _FormView extends StatelessWidget {
     required this.contactCtrl,
     required this.selectedCategory,
     required this.loading,
+    required this.imageOffset,
     required this.onCategoryChanged,
     required this.onSubmit,
   });
@@ -143,11 +231,21 @@ class _FormView extends StatelessWidget {
     return Form(
       key: formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+        padding: EdgeInsets.zero,
         children: [
+          SizedBox(height: imageOffset),
+          Container(
+            decoration: const BoxDecoration(
+              color: _kDark,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           // ── Header ──────────────────────────────────────────────────
           const _PageTitle('Moj Vibe'),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
           // ── About Moj Vibe ──────────────────────────────────────────
           _infoCard([
@@ -378,6 +476,9 @@ class _FormView extends StatelessWidget {
                     ),
             ),
           ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -469,54 +570,6 @@ Widget _infoCard(List<Widget> children) {
   );
 }
 
-// ── Shared widgets ────────────────────────────────────────────────────────────
-
-class _VibeAppBar extends StatelessWidget {
-  final VoidCallback onBack;
-  const _VibeAppBar({required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _kGrey,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 18),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Row(
-            children: [
-              Icon(Icons.favorite_rounded, color: _kOrange, size: 20),
-              const SizedBox(width: 4),
-              const Text(
-                'Vibe',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          const Icon(Icons.wb_sunny_outlined, color: Colors.white54, size: 22),
-        ],
-      ),
-    );
-  }
-}
-
 class _PageTitle extends StatelessWidget {
   final String title;
   const _PageTitle(this.title);
@@ -524,7 +577,7 @@ class _PageTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.only(top: 8, bottom: 10),
       child: Text(
         title,
         style: const TextStyle(

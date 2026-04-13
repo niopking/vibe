@@ -13,155 +13,206 @@ class MarketingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const imageHeight = 280.0;
+    const overlap = 28.0;
+    final topPad = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: _kDark,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _VibeAppBar(onBack: () => Navigator.pop(context)),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 48),
-                children: [
-                  // ── Article-style hero image ─────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Image.network(
-                        _heroImage,
-                        width: double.infinity,
-                        height: 220,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          height: 220,
-                          color: _kGrey,
-                          child: const Center(
-                            child: Icon(Icons.image_outlined,
-                                color: _kTextMuted, size: 48),
+      body: Stack(
+        children: [
+          // ── Fixed hero image ──────────────────────────────────
+          Positioned(
+            top: 0, left: 0, right: 0,
+            height: imageHeight,
+            child: Image.network(
+              _heroImage,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                height: imageHeight,
+                color: _kGrey,
+                child: const Center(
+                  child: Icon(Icons.image_outlined,
+                      color: _kTextMuted, size: 48),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Scrollable content ────────────────────────────────
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: imageHeight - overlap),
+                Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: _kDark,
+                            borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(28)),
+                          ),
+                          padding:
+                              const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _PageTitle('Marketing'),
+                              const SizedBox(height: 16),
+
+                              // ── Intro ──────────────────────────
+                              _contentCard([
+                                _richInline([
+                                  _Tp('Vibe Adria',
+                                      bold: true, color: Colors.white),
+                                  _Tp(
+                                    ' je regionalna digitalna platforma posvećena muzici, događajima, sportu, putovanjima, savremenom načinu života i ljudima koji kreiraju dobar vibe – kako u realnom, tako i u digitalnom svijetu. Naš sadržaj svakodnevno inspiriše hiljade čitalaca i pratilaca širom regiona, okupljajući zajednicu mladih, aktivnih i informisanih ljudi koji znaju šta žele – i šta vole da dijele.',
+                                  ),
+                                ]),
+                              ]),
+
+                              // ── Zašto ──────────────────────────
+                              const SizedBox(height: 24),
+                              const _SectionHeading(
+                                  'Zašto da se oglašavate na Vibe Adria?'),
+                              const SizedBox(height: 10),
+                              _contentCard([
+                                const _Body(
+                                    'Zato što ne nudimo samo prostor – nudimo pažnju.'),
+                                const SizedBox(height: 14),
+                                const _Body(
+                                    'Naš sadržaj je pažljivo kreiran, dizajniran da bude relevantan, svjež i vizuelno prepoznatljiv. Ako želite da se vaš brend, proizvod, destinacija ili događaj pojavi u tom kontekstu – na pravom ste mjestu.'),
+                                const SizedBox(height: 14),
+                                const _Body(
+                                    'Kroz storytelling, autentične vizuale i ciljano pozicioniranje, vaš brend postaje dio Vibe univerzuma – bez šuma, klikbejta i prenaglašene reklame.'),
+                              ]),
+
+                              // ── Publika ─────────────────────────
+                              const SizedBox(height: 24),
+                              const _SectionHeading(
+                                  'Publika Vibe Adria magazina:'),
+                              const SizedBox(height: 10),
+                              _audienceCard(
+                                Icons.people_rounded,
+                                'Mladi i urbani ljudi iz cijelog regiona',
+                                '18–45',
+                              ),
+                              const SizedBox(height: 8),
+                              _audienceCard(
+                                Icons.travel_explore_rounded,
+                                'Ljubitelji putovanja, muzike, festivala i moderne pop kulture',
+                                'Lifestyle',
+                              ),
+                              const SizedBox(height: 8),
+                              _audienceCard(
+                                Icons.trending_up_rounded,
+                                'Pratioci trendova u digitalu, modi, gastronomiji i lifestyle-u',
+                                'Trend',
+                              ),
+                              const SizedBox(height: 8),
+                              _audienceCard(
+                                Icons.star_outline_rounded,
+                                'Kupci koji cijene autentične preporuke i inspirativne priče',
+                                'Premium',
+                              ),
+
+                              // ── Oblasti ─────────────────────────
+                              const SizedBox(height: 24),
+                              const _SectionHeading(
+                                  'Oblasti oglašavanja i saradnje'),
+                              const SizedBox(height: 10),
+                              _contentCard([
+                                const _Body(
+                                    'Naš marketing tim nudi fleksibilne mogućnosti promocije, uz kreativan i strateški pristup oglašavanju:'),
+                                const SizedBox(height: 14),
+                                _bulletList([
+                                  'Brendirani sadržaji (native članci, preporuke, intervjui)',
+                                  'Banneri i display oglasi na ključnim pozicijama sajta',
+                                  'Video formati (intervjui, reportaže, kratke kampanje)',
+                                  'Reklamne kampanje na društvenim mrežama',
+                                  'Newsletter partnerstva',
+                                  'Festivalski specijali i branded editorijali',
+                                  'Putopisne rute i tematski vodiči sa vašim brendom u fokusu',
+                                ]),
+                              ]),
+
+                              // ── Poziv ───────────────────────────
+                              const SizedBox(height: 24),
+                              const _SectionHeading(
+                                  'Pridružite se Vibe partnerima'),
+                              const SizedBox(height: 10),
+                              _contentCard([
+                                const _Body(
+                                    'Ako želite da vaš sadržaj bude predstavljen u kreativnom i relevantnom okruženju, a pri tom ostane vjeran tonu i vrijednostima vašeg brenda – kontaktirajte nas i osmislićemo zajedno sadržaj, koji će publika zaista željeti da vidi, pročita i podijeli.'),
+                                const SizedBox(height: 16),
+                                const _Body(
+                                    'Vidimo se tamo gdje se dobar sadržaj sreće sa dobrom energijom.'),
+                              ]),
+
+                              // ── Contact ─────────────────────────
+                              const SizedBox(height: 20),
+                              const _ContactCard(),
+                            ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 20, 16, 0),
-                    child: _PageTitle('Marketing'),
+          // ── Floating app bar ───────────────────────────────
+          Positioned(
+            top: topPad,
+            left: 0,
+            right: 0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.12)),
+                      ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 18),
+                    ),
                   ),
-
-                  // ── Intro ────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: _contentCard([
-                      _richInline([
-                        _Tp('Vibe Adria', bold: true, color: Colors.white),
-                        _Tp(
-                          ' je regionalna digitalna platforma posvećena muzici, događajima, sportu, putovanjima, savremenom načinu života i ljudima koji kreiraju dobar vibe – kako u realnom, tako i u digitalnom svijetu. Naš sadržaj svakodnevno inspiriše hiljade čitalaca i pratilaca širom regiona, okupljajući zajednicu mladih, aktivnih i informisanih ljudi koji znaju šta žele – i šta vole da dijele.',
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.favorite_rounded,
+                            color: _kOrange, size: 16),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Vibe',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
                         ),
-                      ]),
-                    ]),
-                  ),
-
-                  // ── Zašto ───────────────────────────────────────
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 24, 16, 10),
-                    child: _SectionHeading('Zašto da se oglašavate na Vibe Adria?'),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _contentCard([
-                      const _Body(
-                          'Zato što ne nudimo samo prostor – nudimo pažnju.'),
-                      const SizedBox(height: 14),
-                      const _Body(
-                          'Naš sadržaj je pažljivo kreiran, dizajniran da bude relevantan, svjež i vizuelno prepoznatljiv. Ako želite da se vaš brend, proizvod, destinacija ili događaj pojavi u tom kontekstu – na pravom ste mjestu.'),
-                      const SizedBox(height: 14),
-                      const _Body(
-                          'Kroz storytelling, autentične vizuale i ciljano pozicioniranje, vaš brend postaje dio Vibe univerzuma – bez šuma, klikbejta i prenaglašene reklame.'),
-                    ]),
-                  ),
-
-                  // ── Publika ──────────────────────────────────────
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 24, 16, 10),
-                    child: _SectionHeading('Publika Vibe Adria magazina:'),
-                  ),
-                  _audienceCard(
-                    Icons.people_rounded,
-                    'Mladi i urbani ljudi iz cijelog regiona',
-                    '18–45',
-                  ),
-                  const SizedBox(height: 8),
-                  _audienceCard(
-                    Icons.travel_explore_rounded,
-                    'Ljubitelji putovanja, muzike, festivala i moderne pop kulture',
-                    'Lifestyle',
-                  ),
-                  const SizedBox(height: 8),
-                  _audienceCard(
-                    Icons.trending_up_rounded,
-                    'Pratioci trendova u digitalu, modi, gastronomiji i lifestyle-u',
-                    'Trend',
-                  ),
-                  const SizedBox(height: 8),
-                  _audienceCard(
-                    Icons.star_outline_rounded,
-                    'Kupci koji cijene autentične preporuke i inspirativne priče',
-                    'Premium',
-                  ),
-
-                  // ── Oblasti ─────────────────────────────────────
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 24, 16, 10),
-                    child: _SectionHeading('Oblasti oglašavanja i saradnje'),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _contentCard([
-                      const _Body(
-                          'Naš marketing tim nudi fleksibilne mogućnosti promocije, uz kreativan i strateški pristup oglašavanju:'),
-                      const SizedBox(height: 14),
-                      _bulletList([
-                        'Brendirani sadržaji (native članci, preporuke, intervjui)',
-                        'Banneri i display oglasi na ključnim pozicijama sajta',
-                        'Video formati (intervjui, reportaže, kratke kampanje)',
-                        'Reklamne kampanje na društvenim mrežama',
-                        'Newsletter partnerstva',
-                        'Festivalski specijali i branded editorijali',
-                        'Putopisne rute i tematski vodiči sa vašim brendom u fokusu',
-                      ]),
-                    ]),
-                  ),
-
-                  // ── Poziv ────────────────────────────────────────
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 24, 16, 10),
-                    child: _SectionHeading('Pridružite se Vibe partnerima'),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _contentCard([
-                      const _Body(
-                          'Ako želite da vaš sadržaj bude predstavljen u kreativnom i relevantnom okruženju, a pri tom ostane vjeran tonu i vrijednostima vašeg brenda – kontaktirajte nas i osmislićemo zajedno sadržaj, koji će publika zaista željeti da vidi, pročita i podijeli.'),
-                      const SizedBox(height: 16),
-                      const _Body(
-                          'Vidimo se tamo gdje se dobar sadržaj sreće sa dobrom energijom.'),
-                    ]),
-                  ),
-
-                  // ── Contact ──────────────────────────────────────
-                  const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: _ContactCard(),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -291,53 +342,6 @@ Widget _richInline(List<_Tp> parts) {
   );
 }
 
-// ── Widgets ───────────────────────────────────────────────────────────────────
-
-class _VibeAppBar extends StatelessWidget {
-  final VoidCallback onBack;
-  const _VibeAppBar({required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _kGrey,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 18),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Row(
-            children: [
-              Icon(Icons.favorite_rounded, color: _kOrange, size: 20),
-              const SizedBox(width: 4),
-              const Text(
-                'Vibe',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          const Icon(Icons.wb_sunny_outlined, color: Colors.white54, size: 22),
-        ],
-      ),
-    );
-  }
-}
 
 class _PageTitle extends StatelessWidget {
   final String title;

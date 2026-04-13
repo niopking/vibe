@@ -14,121 +14,108 @@ class AboutUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    const imageHeight = 300.0;
+    const overlap = 28.0;
 
     return Scaffold(
       backgroundColor: _kDark,
       body: Stack(
         children: [
+          // ── Fixed hero image ──────────────────────────────────────
+          Positioned(
+            top: 0, left: 0, right: 0,
+            height: imageHeight,
+            child: Image.network(
+              _heroImage,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                height: imageHeight,
+                color: _kGrey,
+                child: const Center(
+                  child: Icon(Icons.image_outlined,
+                      color: _kTextMuted, size: 48),
+                ),
+              ),
+            ),
+          ),
+
           // ── Scrollable content ────────────────────────────────────
-          CustomScrollView(
-            slivers: [
-              // Hero image
-              SliverToBoxAdapter(
-                child: Stack(
-                  children: [
-                    Image.network(
-                      _heroImage,
-                      width: double.infinity,
-                      height: 280,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 280,
-                        color: _kGrey,
-                        child: const Center(
-                          child: Icon(Icons.image_outlined,
-                              color: _kTextMuted, size: 48),
-                        ),
-                      ),
-                    ),
-                    // Bottom gradient so text beneath image reads well
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 100,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              _kDark.withValues(alpha: 0.9),
-                              _kDark,
-                            ],
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(height: imageHeight - overlap),
+                Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: _kDark,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 48),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _PageTitle('O nama'),
+                      const SizedBox(height: 16),
+
+                      // ── Intro card ──────────────────────────────
+                      _contentCard([
+                        _richInline([
+                          _Tp('Vibe Adria', bold: true, color: Colors.white),
+                          _Tp(
+                            ' je regionalni lifestyle online magazin koji donosi svjež pogled na muziku, putovanja, kulturu, stil, urbane fenomene i inspirativne ljude sa stavom. Pokrenut s idejom da postane platforma dobrih priča i autentičnih perspektiva, Vibe Adria svakodnevno traži, otkriva i dijeli sadržaj koji ima karakter.',
                           ),
+                        ]),
+                        const SizedBox(height: 16),
+                        const _Body(
+                          'Naš pristup je jednostavan: iskreno, drugačije i s jasnim identitetom. U fokusu su priče koje pokreću, lokacije koje mame, zvukovi koji definišu generacije, ali i ljudi – jer vjerujemo da upravo oni stvaraju vibe svakog mjesta, trenutka i pokreta.',
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Body content
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 48),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const _PageTitle('O nama'),
-                    const SizedBox(height: 16),
-
-                    // ── Intro card ──────────────────────────────────
-                    _contentCard([
-                      _richInline([
-                        _Tp('Vibe Adria', bold: true, color: Colors.white),
-                        _Tp(
-                          ' je regionalni lifestyle online magazin koji donosi svjež pogled na muziku, putovanja, kulturu, stil, urbane fenomene i inspirativne ljude sa stavom. Pokrenut s idejom da postane platforma dobrih priča i autentičnih perspektiva, Vibe Adria svakodnevno traži, otkriva i dijeli sadržaj koji ima karakter.',
+                        const SizedBox(height: 16),
+                        const _Body(
+                          'Kao medij, želimo da budemo relevantan, moderan i slobodan prostor koji povezuje publiku iz cijelog regiona. Pratimo šta se dešava, ali biramo kako to ispričamo – s dozom stava, estetike i urbanog senzibiliteta.',
                         ),
                       ]),
-                      const SizedBox(height: 16),
-                      const _Body(
-                        'Naš pristup je jednostavan: iskreno, drugačije i s jasnim identitetom. U fokusu su priče koje pokreću, lokacije koje mame, zvukovi koji definišu generacije, ali i ljudi – jer vjerujemo da upravo oni stvaraju vibe svakog mjesta, trenutka i pokreta.',
-                      ),
-                      const SizedBox(height: 16),
-                      const _Body(
-                        'Kao medij, želimo da budemo relevantan, moderan i slobodan prostor koji povezuje publiku iz cijelog regiona. Pratimo šta se dešava, ali biramo kako to ispričamo – s dozom stava, estetike i urbanog senzibiliteta.',
-                      ),
-                    ]),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // ── B Creative Group card ───────────────────────
-                    _contentCard([
-                      _richInline([
-                        _Tp('Portal Vibe Adria je u vlasništvu kompanije '),
-                        _Tp('B Creative Group d.o.o.',
-                            bold: true, color: _kOrange),
-                        _Tp(
-                          ', specijalizovane za kreativne, medijske i digitalne komunikacije. Osnovani smo s ciljem da medij pretvorimo u iskustvo, a sadržaj u prostor gdje zajednica može da diše, razmišlja, osjeća i dijeli.',
+                      // ── B Creative Group card ───────────────────
+                      _contentCard([
+                        _richInline([
+                          _Tp('Portal Vibe Adria je u vlasništvu kompanije '),
+                          _Tp('B Creative Group d.o.o.',
+                              bold: true, color: _kOrange),
+                          _Tp(
+                            ', specijalizovane za kreativne, medijske i digitalne komunikacije. Osnovani smo s ciljem da medij pretvorimo u iskustvo, a sadržaj u prostor gdje zajednica može da diše, razmišlja, osjeća i dijeli.',
+                          ),
+                        ]),
+                        const SizedBox(height: 16),
+                        const _Body(
+                          'Ako i ti osjećaš taj vibe – dobrodošao/la si da nam se javiš, predložiš temu ili budeš dio naše priče.',
                         ),
                       ]),
+
                       const SizedBox(height: 16),
-                      const _Body(
-                        'Ako i ti osjećaš taj vibe – dobrodošao/la si da nam se javiš, predložiš temu ili budeš dio naše priče.',
-                      ),
-                    ]),
 
-                    const SizedBox(height: 16),
+                      // ── Contact card ────────────────────────────
+                      _contactCard([
+                        _mailRow('Redakcija', 'redakcija@vibeadria.com'),
+                        const SizedBox(height: 10),
+                        _mailRow('Marketing & saradnje',
+                            'marketing@vibeadria.com'),
+                      ]),
 
-                    // ── Contact card ────────────────────────────────
-                    _contactCard([
-                      _mailRow('Redakcija', 'redakcija@vibeadria.com'),
-                      const SizedBox(height: 10),
-                      _mailRow('Marketing & saradnje',
-                          'marketing@vibeadria.com'),
-                    ]),
+                      const SizedBox(height: 20),
 
-                    const SizedBox(height: 20),
-
-                    // ── Meta row ────────────────────────────────────
-                    _infoRow(Icons.verified_rounded, 'Verzija', '1.0.0'),
-                    const SizedBox(height: 8),
-                    _infoRow(Icons.copyright_rounded, 'Sva prava zadržana',
-                        '© 2025 Vibe Adria'),
-                  ]),
+                      // ── Meta row ────────────────────────────────
+                      _infoRow(Icons.verified_rounded, 'Verzija', '1.0.0'),
+                      const SizedBox(height: 8),
+                      _infoRow(Icons.copyright_rounded, 'Sva prava zadržana',
+                          '© 2025 Vibe Adria'),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           // ── Floating app bar ──────────────────────────────────────
