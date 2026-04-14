@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'models.dart';
 
 const kOrange = Color(0xFFF99427);
 const kDark = Color(0xFF161616);
@@ -38,10 +39,10 @@ class _LoadingScreenState extends State<LoadingScreen>
     );
     _logoFade = CurvedAnimation(parent: _logoController, curve: Curves.easeIn);
 
-    // Progress bar fill
+    // Progress bar — bounce naprijed-nazad dok traje učitavanje
     _barController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1600),
+      duration: const Duration(milliseconds: 900),
     );
     _barWidth = CurvedAnimation(
       parent: _barController,
@@ -62,15 +63,23 @@ class _LoadingScreenState extends State<LoadingScreen>
   }
 
   void _startSequence() async {
+    // Startuj fetch odmah paralelno sa animacijom
+    final fetchFuture = fetchArticles();
+
     await Future.delayed(const Duration(milliseconds: 200));
     _logoController.forward();
 
     await Future.delayed(const Duration(milliseconds: 500));
-    _barController.forward();
+    _barController.repeat(reverse: true); // neprestano dok ne učita
 
-    await Future.delayed(const Duration(milliseconds: 2000));
+    // Čekaj minimalno trajanje I kraj fetcha
+    await Future.wait([
+      Future.delayed(const Duration(milliseconds: 2000)),
+      fetchFuture,
+    ]);
+
+    _barController.stop();
     _fadeController.forward();
-
     await Future.delayed(const Duration(milliseconds: 420));
     if (mounted) Navigator.pushReplacementNamed(context, widget.nextRoute);
   }

@@ -31,12 +31,29 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
   @override
   void initState() {
     super.initState();
-    _comments = List.from(widget.article.comments);
+    _comments = [];
     _scrollController = ScrollController()
       ..addListener(() {
         final s = _scrollController.offset.clamp(0.0, 300.0);
         if ((s - _scroll).abs() > 0.5) setState(() => _scroll = s);
       });
+    _loadComments();
+  }
+
+  Future<void> _loadComments() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('wp_komentari')
+          .doc(widget.article.id)
+          .get();
+      if (doc.exists && mounted) {
+        final raw = doc.data()?['komentari'];
+        final komentari = raw is List
+            ? raw.map((e) => Map<String, dynamic>.from(e as Map)).toList()
+            : <Map<String, dynamic>>[];
+        setState(() => _comments = komentari);
+      }
+    } catch (_) {}
   }
 
   Future<void> _sendComment() async {
@@ -51,11 +68,11 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
     });
 
     await FirebaseFirestore.instance
-        .collection('vjesti')
+        .collection('wp_komentari')
         .doc(widget.article.id)
-        .update({
+        .set({
       'komentari': FieldValue.arrayUnion([noviKomentar]),
-    });
+    }, SetOptions(merge: true));
   }
 
   @override

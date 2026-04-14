@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models.dart';
 
@@ -18,7 +20,7 @@ class SavedArticlesService extends ChangeNotifier {
 
   bool isSaved(String id) => _saved.any((a) => a.id == id);
 
-  // ── Load saved articles from Firestore on login ────────────────────────────
+  // ── Učitaj sačuvane artikle (IDs iz Firestorea, sadržaj iz WordPress API) ──
 
   Future<void> loadFromFirebase() async {
     _loaded = false;
@@ -28,7 +30,6 @@ class SavedArticlesService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('userId');
     if (userId == null) {
-      // Guest user — no Firebase sync
       _loaded = true;
       notifyListeners();
       return;
@@ -44,26 +45,26 @@ class SavedArticlesService extends ChangeNotifier {
           List<String>.from(userDoc.data()?['sacuvano'] ?? []);
 
       if (savedIds.isNotEmpty) {
-        // Firestore whereIn supports max 10 items per query
-        final articles = <Article>[];
-        for (var i = 0; i < savedIds.length; i += 10) {
-          final batch = savedIds.sublist(
-              i, (i + 10) > savedIds.length ? savedIds.length : i + 10);
-          final snapshot = await FirebaseFirestore.instance
-              .collection('vjesti')
-              .where(FieldPath.documentId, whereIn: batch)
-              .get();
-          articles.addAll(snapshot.docs.map((doc) => _docToArticle(doc)));
-        }
+        final include = savedIds.join(',');
+        final uri = Uri.parse(
+          'https://vibeadria.com/wp-json/wp/v2/posts?include=$include&_embed&per_page=100',
+        );
+        final response = await http.get(uri);
+        if (response.statusCode == 200) {
+          final List<dynamic> posts = jsonDecode(response.body);
+          final articles = posts
+              .map((p) => wpPostToArticle(p as Map<String, dynamic>))
+              .toList();
 
-        // Preserve saved order (most recent first = reversed savedIds)
-        for (final id in savedIds.reversed) {
-          final matches = articles.where((a) => a.id == id);
-          if (matches.isNotEmpty) _saved.add(matches.first);
+          // Sačuvaj redosljed (najnovije prvo = reversed savedIds)
+          for (final id in savedIds.reversed) {
+            final matches = articles.where((a) => a.id == id);
+            if (matches.isNotEmpty) _saved.add(matches.first);
+          }
         }
       }
     } catch (_) {
-      // If Firebase fails, continue with empty list
+      // Nastavi sa praznom listom
     }
 
     _loaded = true;
@@ -82,7 +83,7 @@ class SavedArticlesService extends ChangeNotifier {
     }
     notifyListeners();
 
-    // Sync to Firestore (skip for guests)
+    // Sync IDs u Firestore (preskoci za goste)
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('userId');
     if (userId == null) return;
@@ -95,29 +96,5 @@ class SavedArticlesService extends ChangeNotifier {
           ? FieldValue.arrayRemove([article.id])
           : FieldValue.arrayUnion([article.id]),
     });
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  Article _docToArticle(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
-    final datum = data['datum'] as int;
-    final kategorija = data['kategorija'] as int;
-    final rawKomentari = data['komentari'];
-    final komentari = rawKomentari is List
-        ? rawKomentari
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList()
-        : <Map<String, dynamic>>[];
-    return Article(
-      id: doc.id,
-      title: data['naslov'] as String,
-      category: categoryMap[kategorija] ?? 'Unknown',
-      date: formatDate(datum),
-      imageUrl: data['slika'] as String,
-      comments: komentari,
-      tekst: data['tekst'] as String? ?? '',
-      timestamp: datum,
-    );
   }
 }
