@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'about_us.dart';
 import 'marketing.dart';
 import 'moj_vibe.dart';
@@ -26,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _darkMode = true;
   bool _loadingUser = true;
   bool _isGuest = false;
+  Set<String> _prijave = {};
 
   @override
   void initState() {
@@ -54,13 +56,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .get();
 
     if (mounted) {
+      final prijaveList =
+          List<String>.from(doc.data()?['prijave'] ?? []);
       setState(() {
         _userId = userId;
         _email = doc.data()?['email'] ?? '';
         _age = doc.data()?['age']?.toString() ?? '';
+        _prijave = prijaveList.toSet();
         _loadingUser = false;
       });
     }
+  }
+
+  Future<void> _prijaviSe(String infoDocId) async {
+    if (_userId.isEmpty) return;
+    await FirebaseFirestore.instance
+        .collection('korisnici')
+        .doc(_userId)
+        .update({
+      'prijave': FieldValue.arrayUnion([infoDocId]),
+    });
+    setState(() => _prijave = {..._prijave, infoDocId});
   }
 
   Future<void> _saveField(String field, dynamic value) async {
@@ -381,9 +397,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _copySocialLink(String platform, String url) {
-    Clipboard.setData(ClipboardData(text: url));
-    _showSnack(context, '$platform link kopiran!', success: true);
+  Future<void> _launchSocialUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) _showSnack(context, 'Ne mogu otvoriti link', success: false);
+    }
   }
 
   void _deleteAccount() async {
@@ -499,8 +517,190 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: _loadingUser
           ? const Center(child: CircularProgressIndicator(color: kOrange))
           : ListView(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPad + 96),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPad + 30),
               children: [
+                // ── Info kartica (nagradna igra i sl.) ─────────────
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('info')
+                      .where('vidljivo', isEqualTo: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    final data = snapshot.data!.docs.first.data()
+                        as Map<String, dynamic>;
+                    final docId = snapshot.data!.docs.first.id;
+                    final naslov = data['naslov'] as String? ?? '';
+                    final slika = data['slika'] as String? ?? '';
+                    final tekst = data['tekst'] as String? ?? '';
+                    final prijavljen = _prijave.contains(docId);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: kOrange.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kOrange.withValues(alpha: 0.15),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.hardEdge,
+                        child: Stack(
+                          children: [
+                            // Slika kao pozadina
+                            if (slika.isNotEmpty)
+                              Image.network(
+                                slika,
+                                width: double.infinity,
+                                height: 220,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  height: 220,
+                                  color: kGrey,
+                                ),
+                              )
+                            else
+                              Container(height: 220, color: kGrey),
+                            // Tamni gradijent odozdo
+                            Container(
+                              height: 220,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.3),
+                                    Colors.black.withValues(alpha: 0.88),
+                                  ],
+                                  stops: const [0.3, 0.6, 1.0],
+                                ),
+                              ),
+                            ),
+                            // Tekst sadržaj
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(18, 0, 18, 20),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: kOrange,
+                                        borderRadius:
+                                            BorderRadius.circular(7),
+                                      ),
+                                      child: const Text(
+                                        'AKCIJA',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      naslov,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                    if (tekst.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        tekst,
+                                        style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.8),
+                                          fontSize: 13,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 14),
+                                    if (!_isGuest)
+                                      GestureDetector(
+                                        onTap: prijavljen
+                                            ? null
+                                            : () => _prijaviSe(docId),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                              milliseconds: 300),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: prijavljen
+                                                ? Colors.white
+                                                    .withValues(alpha: 0.15)
+                                                : kOrange,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: prijavljen
+                                                ? Border.all(
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.3),
+                                                  )
+                                                : null,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                prijavljen
+                                                    ? Icons
+                                                        .check_circle_rounded
+                                                    : Icons.how_to_reg_rounded,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                prijavljen
+                                                    ? 'Prijavljen'
+                                                    : 'Prijavi se',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
                 // ── Profile header ──────────────────────────────────
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
@@ -711,29 +911,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.camera_alt_rounded,
                             color: const Color(0xFFE1306C),
                             label: 'Instagram',
-                            onTap: () => _copySocialLink('Instagram',
-                                'https://instagram.com/vibenews.ba'),
+                            onTap: () => _launchSocialUrl(
+                                'https://www.instagram.com/vibeadria'),
                           ),
                           _SocialIcon(
-                            icon: Icons.facebook_rounded,
-                            color: const Color(0xFF1877F2),
-                            label: 'Facebook',
-                            onTap: () => _copySocialLink('Facebook',
-                                'https://facebook.com/vibenews'),
+                            icon: Icons.play_circle_fill_rounded,
+                            color: const Color(0xFFFF0000),
+                            label: 'YouTube',
+                            onTap: () => _launchSocialUrl(
+                                'https://www.youtube.com/channel/UCT9_ChwGbeSX6QwtKH8sRnw'),
                           ),
                           _SocialIcon(
-                            icon: Icons.close_rounded,
-                            color: Colors.white,
-                            label: 'X',
-                            onTap: () => _copySocialLink(
-                                'X', 'https://x.com/vibenews'),
+                            icon: Icons.language_rounded,
+                            color: kOrange,
+                            label: 'Sajt',
+                            onTap: () => _launchSocialUrl(
+                                'https://vibeadria.com'),
                           ),
                           _SocialIcon(
                             icon: Icons.music_note_rounded,
                             color: const Color(0xFF69C9D0),
                             label: 'TikTok',
-                            onTap: () => _copySocialLink('TikTok',
-                                'https://tiktok.com/@vibenews.ba'),
+                            onTap: () => _launchSocialUrl(
+                                'https://www.tiktok.com/@vibeadria?lang=en'),
                           ),
                         ],
                       ),

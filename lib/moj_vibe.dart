@@ -20,6 +20,62 @@ const _categories = [
   'Ostalo',
 ];
 
+// ── Status helpers ────────────────────────────────────────────────────────────
+
+_StatusStyle _statusStyle(String status) {
+  switch (status) {
+    case 'prihvacen':
+      return _StatusStyle(
+        label: 'Prihvaćen',
+        bg: const Color(0xFF1A3A1A),
+        border: const Color(0xFF2E7D32),
+        text: const Color(0xFF66BB6A),
+        icon: Icons.check_circle_outline_rounded,
+      );
+    case 'odbijen':
+      return _StatusStyle(
+        label: 'Odbijen',
+        bg: const Color(0xFF3A1A1A),
+        border: const Color(0xFFC62828),
+        text: const Color(0xFFEF9A9A),
+        icon: Icons.cancel_outlined,
+      );
+    default:
+      return _StatusStyle(
+        label: 'U obradi',
+        bg: const Color(0xFF2A2510),
+        border: const Color(0xFF7B6A00),
+        text: const Color(0xFFFFCA28),
+        icon: Icons.hourglass_empty_rounded,
+      );
+  }
+}
+
+class _StatusStyle {
+  final String label;
+  final Color bg, border, text;
+  final IconData icon;
+  const _StatusStyle({
+    required this.label,
+    required this.bg,
+    required this.border,
+    required this.text,
+    required this.icon,
+  });
+}
+
+String _fmtTimestamp(Timestamp? ts) {
+  if (ts == null) return '';
+  final dt = ts.toDate().toLocal();
+  final months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun',
+    'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec',
+  ];
+  return '${dt.day}. ${months[dt.month - 1]} ${dt.year}.';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 class MojVibeScreen extends StatefulWidget {
   final String userId;
   final String email;
@@ -55,7 +111,7 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await FirebaseFirestore.instance.collection('prijedlozi').add({
+      await FirebaseFirestore.instance.collection('clanci_korisnika').add({
         'naslov': _titleCtrl.text.trim(),
         'kategorija': _selectedCategory,
         'sadrzaj': _contentCtrl.text.trim(),
@@ -63,6 +119,8 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
         'userId': widget.userId,
         'email': widget.email,
         'timestamp': FieldValue.serverTimestamp(),
+        'status': 'u_obradi',
+        'feedback': '',
       });
       if (mounted) setState(() => _sent = true);
     } catch (e) {
@@ -136,6 +194,7 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
             selectedCategory: _selectedCategory,
             loading: _loading,
             imageOffset: _imageHeight - _overlap,
+            userId: widget.userId,
             onCategoryChanged: (v) => setState(() => _selectedCategory = v),
             onSubmit: _submit,
           ),
@@ -201,6 +260,151 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
   }
 }
 
+// ── Moji prijedlozi section ───────────────────────────────────────────────────
+
+class _MojiPrijedloziSection extends StatelessWidget {
+  final String userId;
+  const _MojiPrijedloziSection({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('clanci_korisnika')
+          .where('userId', isEqualTo: userId)
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData || snap.data!.docs.isEmpty) return const SizedBox.shrink();
+
+        final docs = snap.data!.docs;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _FieldLabel('MOJI PRIJEDLOZI'),
+            const SizedBox(height: 10),
+            ...docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final status = data['status'] as String? ?? 'u_obradi';
+              final feedback = (data['feedback'] as String? ?? '').trim();
+              final style = _statusStyle(status);
+              final ts = data['timestamp'] as Timestamp?;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: style.bg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: style.border.withValues(alpha: 0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            data['naslov'] as String? ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: style.border.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: style.border.withValues(alpha: 0.6)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(style.icon, color: style.text, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                style.label,
+                                style: TextStyle(
+                                  color: style.text,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _kOrange.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            data['kategorija'] as String? ?? '',
+                            style: const TextStyle(
+                                color: _kOrange,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (ts != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            _fmtTimestamp(ts),
+                            style: const TextStyle(
+                                color: _kTextMuted, fontSize: 11),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (feedback.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      const Divider(color: Colors.white12, height: 1),
+                      const SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.feedback_outlined,
+                              color: style.text, size: 14),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              feedback,
+                              style: TextStyle(
+                                color: style.text.withValues(alpha: 0.9),
+                                fontSize: 13,
+                                height: 1.45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        );
+      },
+    );
+  }
+}
+
 // ── Form view ─────────────────────────────────────────────────────────────────
 
 class _FormView extends StatelessWidget {
@@ -211,6 +415,7 @@ class _FormView extends StatelessWidget {
   final String selectedCategory;
   final bool loading;
   final double imageOffset;
+  final String userId;
   final ValueChanged<String> onCategoryChanged;
   final VoidCallback onSubmit;
 
@@ -222,6 +427,7 @@ class _FormView extends StatelessWidget {
     required this.selectedCategory,
     required this.loading,
     required this.imageOffset,
+    required this.userId,
     required this.onCategoryChanged,
     required this.onSubmit,
   });
@@ -330,7 +536,14 @@ class _FormView extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
+
+          // ── Moji prijedlozi ─────────────────────────────────────────
+          if (userId.isNotEmpty) _MojiPrijedloziSection(userId: userId),
+
+          // ── Novi prijedlog ──────────────────────────────────────────
+          const _FieldLabel('NOVI PRIJEDLOG'),
+          const SizedBox(height: 16),
 
           // ── Naslov ──────────────────────────────────────────────────
           const _FieldLabel('NASLOV ČLANKA'),
