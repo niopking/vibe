@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-const kOrange = Color(0xFFF99427);
-const kDark   = Color(0xFF161616);
-const kGrey   = Color(0xFF2A2A2A);
+import 'app_theme.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -51,8 +48,8 @@ class _SignupScreenState extends State<SignupScreen> {
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: const Color(0xFF323232),
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.error_outline, color: Color(0xFFFFB74D)),
                   SizedBox(width: 12),
                   Expanded(child: Text('Email već postoji. Probaj drugi.', style: TextStyle(color: Colors.white))),
@@ -68,9 +65,10 @@ class _SignupScreenState extends State<SignupScreen> {
         'email': email,
         'emailLower': emailLower,
         'age': int.parse(_ageCtrl.text),
-        'password': _passCtrl.text, // Note: Storing plain password is insecure
+        'password': _passCtrl.text,
         'interests': [],
         'sacuvano': [],
+        'darkMode': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -101,7 +99,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: buildDarkTheme(),
+      child: Builder(builder: (context) => Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -111,28 +111,27 @@ class _SignupScreenState extends State<SignupScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
-
                 Image.asset('images/logobeztr.png', width: 130, height: 130, fit: BoxFit.contain),
                 const SizedBox(height: 12),
                 Text('Kreiraj nalog', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Brza registracija — samo par sekundi',
-                  style: TextStyle(color: Color(0xFF888888), fontSize: 15),
+                  style: TextStyle(color: context.textMuted, fontSize: 15),
                 ),
 
                 const SizedBox(height: 36),
 
-                // ── Email ──────────────────────────────────────────────────
-                const _FieldLabel('EMAIL ADRESA'),
+                _FieldLabel('EMAIL ADRESA'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  keyboardAppearance: Brightness.dark,
+                  style: TextStyle(color: context.textPrimary),
+                  decoration: InputDecoration(
                     hintText: 'tvoj@email.com',
-                    prefixIcon: Icon(Icons.mail_outline_rounded, color: Color(0xFF666666), size: 20),
+                    prefixIcon: Icon(Icons.mail_outline_rounded, color: context.textMuted, size: 20),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Unesi email adresu';
@@ -144,16 +143,16 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 20),
 
-                // ── Godine ─────────────────────────────────────────────────
-                const _FieldLabel('GODINE'),
+                _FieldLabel('GODINE'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _ageCtrl,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  keyboardAppearance: Brightness.dark,
+                  style: TextStyle(color: context.textPrimary),
+                  decoration: InputDecoration(
                     hintText: 'npr. 25',
-                    prefixIcon: Icon(Icons.cake_outlined, color: Color(0xFF666666), size: 20),
+                    prefixIcon: Icon(Icons.cake_outlined, color: context.textMuted, size: 20),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Unesi godine';
@@ -166,20 +165,20 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 20),
 
-                // ── Lozinka ────────────────────────────────────────────────
-                const _FieldLabel('LOZINKA'),
+                _FieldLabel('LOZINKA'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passCtrl,
                   obscureText: _obscure1,
-                  style: const TextStyle(color: Colors.white),
+                  keyboardAppearance: Brightness.dark,
+                  style: TextStyle(color: context.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Min. 8 znakova',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF666666), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: context.textMuted, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure1 ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: const Color(0xFF666666),
+                        color: context.textMuted,
                         size: 20,
                       ),
                       onPressed: () => setState(() => _obscure1 = !_obscure1),
@@ -194,20 +193,20 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 20),
 
-                // ── Potvrdi lozinku ────────────────────────────────────────
-                const _FieldLabel('POTVRDI LOZINKU'),
+                _FieldLabel('POTVRDI LOZINKU'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _pass2Ctrl,
                   obscureText: _obscure2,
-                  style: const TextStyle(color: Colors.white),
+                  keyboardAppearance: Brightness.dark,
+                  style: TextStyle(color: context.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Ponovi lozinku',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF666666), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: context.textMuted, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure2 ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: const Color(0xFF666666),
+                        color: context.textMuted,
                         size: 20,
                       ),
                       onPressed: () => setState(() => _obscure2 = !_obscure2),
@@ -236,7 +235,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("Već imaš nalog?  ", style: TextStyle(color: Color(0xFF888888))),
+                      Text("Već imaš nalog?  ", style: TextStyle(color: context.textMuted)),
                       GestureDetector(
                         onTap: () => Navigator.pushReplacementNamed(context, '/login'),
                         child: const Text(
@@ -252,8 +251,8 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
         ),
-      ),
-    );
+      )),
+    ));
   }
 }
 
@@ -267,7 +266,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+      style: TextStyle(color: context.textMuted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
     );
   }
 }

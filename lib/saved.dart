@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
+import 'app_theme.dart';
 import 'models.dart';
 import 'artikal.dart';
 import 'saved_service.dart';
-
-const kOrange = Color(0xFFFF8200);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
-const kTextMuted = Color(0xFF888888);
-
-// ── Saved screen ───────────────────────────────────────────────────────────────
 
 class SavedScreen extends StatefulWidget {
   const SavedScreen({super.key});
@@ -36,98 +30,108 @@ class _SavedScreenState extends State<SavedScreen> {
   Widget build(BuildContext context) {
     final service = SavedArticlesService.instance;
     final articles = service.saved;
+    final canPop = Navigator.of(context).canPop();
 
     if (!service.isLoaded) {
-      return const SafeArea(
-        bottom: false,
-        child: Center(
+      return Scaffold(
+        backgroundColor: context.bg,
+        body: const Center(
           child: CircularProgressIndicator(color: kOrange, strokeWidth: 2),
         ),
       );
     }
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              children: [
-                const Text(
-                  'Sačuvane vijesti',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
+    Widget body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(canPop ? 4 : 16, 16, 16, 12),
+          child: Row(
+            children: [
+              if (canPop)
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_rounded, color: context.textPrimary),
+                  padding: const EdgeInsets.only(right: 4),
+                ),
+              Text(
+                'Sačuvane vijesti',
+                style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 10),
+              if (articles.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: kOrange,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${articles.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                if (articles.isNotEmpty)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: kOrange,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${articles.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+            ],
+          ),
+        ),
+        if (articles.isEmpty)
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bookmark_outline_rounded,
+                      color: context.textMuted, size: 56),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nema sačuvanih vijesti',
+                    style: TextStyle(
+                      color: context.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tapni bookmark na vijesti da je sačuvaš ovdje.',
+                    style: TextStyle(color: context.textMuted, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              itemCount: articles.length,
+              itemBuilder: (context, index) {
+                return _SavedArticleCard(article: articles[index]);
+              },
             ),
           ),
-          if (articles.isEmpty)
-            const Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.bookmark_outline_rounded,
-                        color: kTextMuted, size: 56),
-                    SizedBox(height: 16),
-                    Text(
-                      'Nema sačuvanih vijesti',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Tapni bookmark na vijesti da je sačuvaš ovdje.',
-                      style: TextStyle(color: kTextMuted, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                itemCount: articles.length,
-                itemBuilder: (context, index) {
-                  return _SavedArticleCard(article: articles[index]);
-                },
-              ),
-            ),
-        ],
-      ),
+      ],
     );
+
+    if (canPop) {
+      return Scaffold(
+        backgroundColor: context.bg,
+        body: SafeArea(bottom: false, child: body),
+      );
+    }
+
+    return SafeArea(bottom: false, child: body);
   }
 }
-
-// ── Saved article card ─────────────────────────────────────────────────────────
 
 class _SavedArticleCard extends StatelessWidget {
   final Article article;
@@ -143,9 +147,9 @@ class _SavedArticleCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: kGrey,
+          color: context.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: context.border),
         ),
         child: Row(
           children: [
@@ -161,7 +165,7 @@ class _SavedArticleCard extends StatelessWidget {
                   article.imageUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
-                      Container(color: const Color(0xFF3A3A3A)),
+                      Container(color: context.surfaceLight),
                 ),
               ),
             ),
@@ -172,8 +176,7 @@ class _SavedArticleCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: kOrange,
                         borderRadius: BorderRadius.circular(6),
@@ -191,8 +194,8 @@ class _SavedArticleCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       article.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         height: 1.35,
@@ -203,7 +206,7 @@ class _SavedArticleCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       article.date,
-                      style: const TextStyle(color: kTextMuted, fontSize: 10),
+                      style: TextStyle(color: context.textMuted, fontSize: 10),
                     ),
                   ],
                 ),

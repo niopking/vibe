@@ -1,14 +1,15 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'app_theme.dart';
 import 'models.dart';
 import 'saved_service.dart';
 
-const kOrange = Color(0xFFFF8200);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
-const kGreyLight = Color(0xFF3A3A3A);
-const kTextMuted = Color(0xFF888888);
-
+const _kAdImages = [
+  'https://pbs.twimg.com/profile_images/876774392092659712/kE_hR2ng_400x400.jpg',
+  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5AR3vQqp23VQVmscIaWrt7DTOtCQJdQSBjw&s',
+];
 
 class ArtikalScreen extends StatefulWidget {
   final Article article;
@@ -59,14 +60,11 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
   Future<void> _sendComment() async {
     final tekst = _commentController.text.trim();
     if (tekst.isEmpty) return;
-
     final noviKomentar = {'osoba': 'TODO', 'tekst': tekst};
-
     setState(() {
       _comments.add(noviKomentar);
       _commentController.clear();
     });
-
     await FirebaseFirestore.instance
         .collection('wp_komentari')
         .doc(widget.article.id)
@@ -82,18 +80,10 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
     super.dispose();
   }
 
-  // 1.12× zoomed at top → 1.0× at scroll=200 (zoom out as you scroll)
   double get _imageScale =>
       1.12 - (0.12 * (_scroll / 200).clamp(0.0, 1.0));
-
-  // Top bar (logo+search+bell) fades from 1→0 over first 90px
-  double get _topBarOpacity =>
-      (1.0 - _scroll / 90).clamp(0.0, 1.0);
-
-  // Floating back button fades in as top bar fades out
-  double get _backOpacity =>
-      (_scroll / 90).clamp(0.0, 1.0);
-
+  double get _topBarOpacity => (1.0 - _scroll / 90).clamp(0.0, 1.0);
+  double get _backOpacity => (_scroll / 90).clamp(0.0, 1.0);
   String get _tekst => widget.article.tekst;
 
   int get _readingMinutes {
@@ -106,18 +96,14 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
     final safeTop = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: kDark,
+      backgroundColor: context.bg,
       extendBody: true,
-      bottomNavigationBar: _ArticleBottomNav(
-        onBack: () => Navigator.pop(context),
-      ),
+      bottomNavigationBar: _ArticleBottomNav(onBack: () => Navigator.pop(context)),
       body: Stack(
         children: [
-          // ── 1. Fixed hero image with zoom-out parallax ──────────────────
+          // ── 1. Fixed hero image ────────────────────────────────────────
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 0, left: 0, right: 0,
             height: _imageHeight,
             child: ClipRect(
               child: Transform.scale(
@@ -126,58 +112,55 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                 child: Image.network(
                   widget.article.imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: kGrey),
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: context.surface),
                 ),
               ),
             ),
           ),
 
-          // ── 2. Scrollable content ───────────────────────────────────────
+          // ── 2. Scrollable content ──────────────────────────────────────
           SingleChildScrollView(
             controller: _scrollController,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Space for hero image (minus overlap)
                 const SizedBox(height: _imageHeight - _overlap),
 
-                // Content sheet
                 Container(
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: kDark,
+                  decoration: BoxDecoration(
+                    color: context.bg,
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(28)),
+                        const BorderRadius.vertical(top: Radius.circular(28)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 22),
 
-                      // Meta row
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
                             _CategoryBadge(label: widget.article.category),
                             const SizedBox(width: 12),
-                            const Icon(Icons.schedule_rounded,
-                                color: kTextMuted, size: 13),
+                            Icon(Icons.schedule_rounded,
+                                color: context.textMuted, size: 13),
                             const SizedBox(width: 4),
                             Text(
                               '$_readingMinutes min čitanja',
-                              style: const TextStyle(
-                                  color: kTextMuted, fontSize: 12),
+                              style: TextStyle(
+                                  color: context.textMuted, fontSize: 12),
                             ),
                             const Spacer(),
-                            const Icon(Icons.chat_bubble_outline_rounded,
-                                color: kTextMuted, size: 13),
+                            Icon(Icons.chat_bubble_outline_rounded,
+                                color: context.textMuted, size: 13),
                             const SizedBox(width: 4),
                             Text(
                               '${_comments.length}',
-                              style: const TextStyle(
-                                  color: kTextMuted, fontSize: 12),
+                              style: TextStyle(
+                                  color: context.textMuted, fontSize: 12),
                             ),
                           ],
                         ),
@@ -185,14 +168,12 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Title
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
                           widget.article.title,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.textPrimary,
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
                             height: 1.3,
@@ -203,10 +184,8 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
 
                       const SizedBox(height: 14),
 
-                      // Date with accent bar
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
                             Container(
@@ -220,23 +199,19 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                             const SizedBox(width: 8),
                             Text(
                               widget.article.date,
-                              style: const TextStyle(
-                                  color: kTextMuted, fontSize: 12),
+                              style: TextStyle(
+                                  color: context.textMuted, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
 
                       const SizedBox(height: 26),
-
                       _Divider(),
-
                       const SizedBox(height: 26),
 
-                      // Body text (rich formatting)
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: _buildRichBody(_tekst),
                       ),
 
@@ -246,14 +221,13 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                       const SizedBox(height: 24),
 
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
-                            const Text(
+                            Text(
                               'Komentari',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: context.textPrimary,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -263,13 +237,13 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: kGrey,
+                                color: context.surface,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 '${_comments.length}',
-                                style: const TextStyle(
-                                  color: kTextMuted,
+                                style: TextStyle(
+                                  color: context.textMuted,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -282,13 +256,13 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                       const SizedBox(height: 14),
 
                       if (_comments.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 8),
                           child: Text(
                             'Budi prvi koji će komentarisati.',
-                            style:
-                                TextStyle(color: kTextMuted, fontSize: 13),
+                            style: TextStyle(
+                                color: context.textMuted, fontSize: 13),
                           ),
                         ),
 
@@ -308,27 +282,22 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                                 setState(() => _showAllComments = true),
                             child: Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
-                                color: kGrey,
+                                color: context.surface,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white
-                                      .withValues(alpha: 0.07),
-                                ),
+                                border: Border.all(color: context.border),
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
-                                      Icons.expand_more_rounded,
-                                      color: kOrange,
-                                      size: 18),
-                                  const SizedBox(width: 6),
+                                  Icon(Icons.expand_more_rounded,
+                                      color: kOrange, size: 18),
+                                  SizedBox(width: 6),
                                   Text(
-                                    'Vidi još ${_comments.length - 3} komentara',
-                                    style: const TextStyle(
+                                    'Vidi još komentara',
+                                    style: TextStyle(
                                       color: kOrange,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -342,37 +311,35 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Add comment input
                       Padding(
-                        padding:
-                            const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: kGrey,
+                            color: context.surface,
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.07),
-                            ),
+                            border: Border.all(color: context.border),
                           ),
-                          padding:
-                              const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
                           child: Row(
                             children: [
                               Expanded(
                                 child: TextField(
                                   controller: _commentController,
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 14),
+                                  style: TextStyle(
+                                      color: context.textPrimary,
+                                      fontSize: 14),
                                   maxLines: null,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
                                     filled: true,
                                     fillColor: Colors.transparent,
                                     hintText: 'Napiši komentar...',
                                     hintStyle: TextStyle(
-                                        color: kTextMuted, fontSize: 14),
-                                    contentPadding: EdgeInsets.symmetric(
-                                        vertical: 12),
+                                        color: context.textMuted,
+                                        fontSize: 14),
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            vertical: 12),
                                   ),
                                 ),
                               ),
@@ -394,21 +361,21 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                         ),
                       ),
 
-                      // ── Preporučujemo ─────────────────────────────────────
+                      // ── Preporučujemo ──────────────────────────────────
                       const SizedBox(height: 40),
                       _Divider(),
                       const SizedBox(height: 24),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
-                            Icon(Icons.recommend_rounded,
+                            const Icon(Icons.recommend_rounded,
                                 color: kOrange, size: 18),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
                               'Preporučujemo',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: context.textPrimary,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -427,11 +394,9 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
             ),
           ),
 
-          // ── 3. Fading top bar ────────────────────────────────────────────
+          // ── 3. Fading top bar ──────────────────────────────────────────
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 0, left: 0, right: 0,
             child: Opacity(
               opacity: _topBarOpacity,
               child: Container(
@@ -451,12 +416,10 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
                     child: Row(
                       children: [
-                        // Back
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
                           child: Container(
-                            width: 40,
-                            height: 40,
+                            width: 40, height: 40,
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.35),
                               borderRadius: BorderRadius.circular(14),
@@ -470,12 +433,10 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                           ),
                         ),
                         const Spacer(),
-                        // Share
                         GestureDetector(
                           onTap: () => _showShareSheet(context),
                           child: Container(
-                            width: 40,
-                            height: 40,
+                            width: 40, height: 40,
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.35),
                               borderRadius: BorderRadius.circular(14),
@@ -489,11 +450,7 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        // Bookmark
-                        _BookmarkButton(
-                          article: widget.article,
-                          glass: true,
-                        ),
+                        _BookmarkButton(article: widget.article, glass: true),
                       ],
                     ),
                   ),
@@ -502,32 +459,28 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
             ),
           ),
 
-          // ── 4. Persistent back + actions (fade IN as top bar fades OUT) ──
+          // ── 4. Persistent back + actions ──────────────────────────────
           Positioned(
-            top: safeTop + 8,
-            left: 12,
+            top: safeTop + 8, left: 12,
             child: Opacity(
               opacity: _backOpacity,
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color: kGrey,
+                    color: context.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1)),
+                    border: Border.all(color: context.border),
                   ),
-                  child: const Icon(Icons.arrow_back_rounded,
-                      color: Colors.white, size: 20),
+                  child: Icon(Icons.arrow_back_rounded,
+                      color: context.textPrimary, size: 20),
                 ),
               ),
             ),
           ),
           Positioned(
-            top: safeTop + 8,
-            right: 12,
+            top: safeTop + 8, right: 12,
             child: Opacity(
               opacity: _backOpacity,
               child: Row(
@@ -535,16 +488,14 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
                   GestureDetector(
                     onTap: () => _showShareSheet(context),
                     child: Container(
-                      width: 40,
-                      height: 40,
+                      width: 40, height: 40,
                       decoration: BoxDecoration(
-                        color: kGrey,
+                        color: context.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1)),
+                        border: Border.all(color: context.border),
                       ),
-                      child: const Icon(Icons.ios_share_rounded,
-                          color: Colors.white, size: 18),
+                      child: Icon(Icons.ios_share_rounded,
+                          color: context.textPrimary, size: 18),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -559,37 +510,77 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
   }
 
   Widget _buildRichBody(String text) {
-    final paragraphs = text.split('\n\n');
+    final blocks = widget.article.contentBlocks;
+    final rng = Random(widget.article.id.hashCode);
+    final maxAds = 1 + rng.nextInt(2); // 1 ili 2
+    int textSinceAd = 0;
+    int adsShown = 0;
+    int nextAdAfter = 2 + rng.nextInt(3); // 2, 3 ili 4
+
     final widgets = <Widget>[];
-    for (int i = 0; i < paragraphs.length; i++) {
-      if (i > 0) widgets.add(const SizedBox(height: 20));
-      widgets.add(_buildParagraph(paragraphs[i], isLead: i == 0));
+
+    void appendAdIfDue({required bool hasMore}) {
+      if (!hasMore) return;
+      if (adsShown >= maxAds) return;
+      if (textSinceAd < nextAdAfter) return;
+      widgets.add(const SizedBox(height: 24));
+      widgets.add(_AdBanner(imageUrl: _kAdImages[rng.nextInt(_kAdImages.length)]));
+      adsShown++;
+      textSinceAd = 0;
+      nextAdAfter = 2 + rng.nextInt(3);
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: widgets,
-    );
+
+    if (blocks.isEmpty) {
+      final paragraphs = text.split('\n\n');
+      for (int i = 0; i < paragraphs.length; i++) {
+        if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 20));
+        widgets.add(_buildParagraph(paragraphs[i], isLead: i == 0));
+        textSinceAd++;
+        appendAdIfDue(hasMore: i < paragraphs.length - 1);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
+    }
+
+    bool firstText = true;
+    for (int i = 0; i < blocks.length; i++) {
+      final block = blocks[i];
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 20));
+      switch (block) {
+        case TextBlock(:final text):
+          widgets.add(_buildParagraph(text, isLead: firstText));
+          firstText = false;
+          textSinceAd++;
+          appendAdIfDue(hasMore: i < blocks.length - 1);
+        case YouTubeBlock(:final videoId):
+          widgets.add(_YouTubeCard(videoId: videoId));
+          firstText = false;
+        case InstagramBlock(:final postUrl):
+          widgets.add(_InstagramCard(postUrl: postUrl));
+          firstText = false;
+        case ImageBlock(:final imageUrl, :final caption):
+          widgets.add(_ArticleImage(imageUrl: imageUrl, caption: caption));
+          firstText = false;
+      }
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
   }
 
   Widget _buildParagraph(String para, {bool isLead = false}) {
     if (isLead) {
-      // Lead paragraph: white, bold — journalistic intro
       return Text(
         para,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: context.textPrimary,
           fontSize: 17,
           fontWeight: FontWeight.w600,
           height: 1.7,
         ),
       );
     }
-
-    // Other paragraphs: uniform muted style
     return Text(
       para,
-      style: const TextStyle(
-        color: Color(0xFFBBBBBB),
+      style: TextStyle(
+        color: context.textBody,
         fontSize: 16,
         height: 1.75,
       ),
@@ -599,7 +590,7 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
   void _showShareSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: kGrey,
+      backgroundColor: context.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -612,7 +603,7 @@ class _ArtikalScreenState extends State<ArtikalScreen> {
 
 class _BookmarkButton extends StatefulWidget {
   final Article article;
-  final bool glass; // true = overlay style, false = solid kGrey
+  final bool glass;
   const _BookmarkButton({required this.article, required this.glass});
 
   @override
@@ -636,28 +627,28 @@ class _BookmarkButtonState extends State<_BookmarkButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isSaved =
-        SavedArticlesService.instance.isSaved(widget.article.id);
+    final isSaved = SavedArticlesService.instance.isSaved(widget.article.id);
     return GestureDetector(
       onTap: () => SavedArticlesService.instance.toggle(widget.article),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 40, height: 40,
         decoration: BoxDecoration(
           color: widget.glass
               ? Colors.black.withValues(alpha: 0.35)
-              : kGrey,
+              : context.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSaved
                 ? kOrange.withValues(alpha: 0.6)
-                : Colors.white.withValues(alpha: widget.glass ? 0.18 : 0.1),
+                : widget.glass
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : context.border,
             width: widget.glass ? 0.8 : 1,
           ),
         ),
         child: Icon(
           isSaved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
-          color: isSaved ? kOrange : Colors.white,
+          color: isSaved ? kOrange : (widget.glass ? Colors.white : context.textPrimary),
           size: 20,
         ),
       ),
@@ -679,27 +670,24 @@ class _ShareSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 36,
-            height: 4,
+            width: 36, height: 4,
             decoration: BoxDecoration(
-              color: Colors.white24,
+              color: context.textMuted.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
-          // Article preview row
           Row(
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: SizedBox(
-                  width: 56,
-                  height: 56,
+                  width: 56, height: 56,
                   child: Image.network(
                     article.imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
-                        Container(color: kGreyLight),
+                        Container(color: context.surfaceLight),
                   ),
                 ),
               ),
@@ -707,8 +695,8 @@ class _ShareSheet extends StatelessWidget {
               Expanded(
                 child: Text(
                   article.title,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     height: 1.35,
@@ -759,8 +747,7 @@ class _SheetOption extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _SheetOption(
-      {required this.icon, required this.label, required this.onTap});
+  const _SheetOption({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -770,7 +757,7 @@ class _SheetOption extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: kGreyLight,
+          color: context.surfaceLight,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -778,7 +765,7 @@ class _SheetOption extends StatelessWidget {
             Icon(icon, color: kOrange, size: 20),
             const SizedBox(width: 14),
             Text(label,
-                style: const TextStyle(color: Colors.white, fontSize: 14)),
+                style: TextStyle(color: context.textPrimary, fontSize: 14)),
           ],
         ),
       ),
@@ -808,18 +795,15 @@ class _ArticleBottomNav extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: kGrey,
+        color: context.surface,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(26),
           topRight: Radius.circular(26),
         ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-          width: 0.6,
-        ),
+        border: Border.all(color: context.border, width: 0.6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 18,
             offset: const Offset(0, -4),
           ),
@@ -834,21 +818,19 @@ class _ArticleBottomNav extends StatelessWidget {
               final isHome = item.idx == 0;
               return Expanded(
                 child: InkWell(
-                  onTap: item.idx == 2
-                      ? () => _goToSaved(context)
-                      : onBack,
+                  onTap: item.idx == 2 ? () => _goToSaved(context) : onBack,
                   borderRadius: BorderRadius.circular(20),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(item.icon,
                           size: 23,
-                          color: isHome ? kOrange : kTextMuted),
+                          color: isHome ? kOrange : context.textMuted),
                       const SizedBox(height: 3),
                       Text(item.label,
                           style: TextStyle(
                             fontSize: 10,
-                            color: isHome ? kOrange : kTextMuted,
+                            color: isHome ? kOrange : context.textMuted,
                             fontWeight: isHome
                                 ? FontWeight.w600
                                 : FontWeight.w400,
@@ -868,18 +850,13 @@ class _ArticleBottomNav extends StatelessWidget {
 // ── Comment card ───────────────────────────────────────────────────────────────
 
 const _kAvatarColors = [
-  Color(0xFF6B8CFF),
-  Color(0xFF8B5CF6),
-  Color(0xFF10B981),
-  Color(0xFFF59E0B),
-  Color(0xFFEF4444),
-  Color(0xFF3B82F6),
-  Color(0xFF14B8A6),
-  Color(0xFFEC4899),
+  Color(0xFF6B8CFF), Color(0xFF8B5CF6), Color(0xFF10B981),
+  Color(0xFFF59E0B), Color(0xFFEF4444), Color(0xFF3B82F6),
+  Color(0xFF14B8A6), Color(0xFFEC4899),
 ];
 
 Color _avatarColor(String name) {
-  if (name.isEmpty) return kTextMuted;
+  if (name.isEmpty) return const Color(0xFF888888);
   final idx = name.codeUnits.fold(0, (a, b) => a + b) % _kAvatarColors.length;
   return _kAvatarColors[idx];
 }
@@ -893,24 +870,21 @@ class _KomentarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _avatarColor(osoba);
     final initial = osoba.isNotEmpty ? osoba.trim()[0].toUpperCase() : '?';
-    final displayName =
-        osoba.isEmpty || osoba == 'TODO' ? 'Korisnik' : osoba;
+    final displayName = osoba.isEmpty || osoba == 'TODO' ? 'Korisnik' : osoba;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       decoration: BoxDecoration(
-        color: kGrey,
+        color: context.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: context.border),
       ),
       padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar
           Container(
-            width: 38,
-            height: 38,
+            width: 38, height: 38,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.18),
               shape: BoxShape.circle,
@@ -921,10 +895,7 @@ class _KomentarItem extends StatelessWidget {
               child: Text(
                 initial,
                 style: TextStyle(
-                  color: color,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
+                    color: color, fontSize: 15, fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -937,27 +908,25 @@ class _KomentarItem extends StatelessWidget {
                   children: [
                     Text(
                       displayName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'nedavno',
-                      style: TextStyle(color: kTextMuted, fontSize: 10),
+                      style:
+                          TextStyle(color: context.textMuted, fontSize: 10),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   tekst,
-                  style: const TextStyle(
-                    color: Color(0xFFCCCCCC),
-                    fontSize: 14,
-                    height: 1.6,
-                  ),
+                  style: TextStyle(
+                      color: context.textBody, fontSize: 14, height: 1.6),
                 ),
               ],
             ),
@@ -976,7 +945,7 @@ class _Divider extends StatelessWidget {
     return Container(
       height: 0.6,
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      color: Colors.white.withValues(alpha: 0.08),
+      color: context.divider,
     );
   }
 }
@@ -1008,17 +977,13 @@ class _RecommendedSection extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => ArtikalScreen(article: a),
-                  ),
+                  MaterialPageRoute(builder: (_) => ArtikalScreen(article: a)),
                 ),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: kGrey,
+                    color: context.surface,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
+                    border: Border.all(color: context.border),
                   ),
                   child: Row(
                     children: [
@@ -1028,19 +993,18 @@ class _RecommendedSection extends StatelessWidget {
                           bottomLeft: Radius.circular(18),
                         ),
                         child: SizedBox(
-                          width: 100,
-                          height: 88,
+                          width: 100, height: 88,
                           child: Image.network(
                             a.imageUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
-                                Container(color: kGreyLight),
+                                Container(color: context.surfaceLight),
                           ),
                         ),
                       ),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                          padding: const EdgeInsets.all(12),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1048,8 +1012,8 @@ class _RecommendedSection extends StatelessWidget {
                               const SizedBox(height: 6),
                               Text(
                                 a.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: context.textPrimary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   height: 1.35,
@@ -1060,26 +1024,18 @@ class _RecommendedSection extends StatelessWidget {
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  Text(
-                                    a.date,
-                                    style: const TextStyle(
-                                      color: kTextMuted,
-                                      fontSize: 10,
-                                    ),
-                                  ),
+                                  Text(a.date,
+                                      style: TextStyle(
+                                          color: context.textMuted,
+                                          fontSize: 10)),
                                   const Spacer(),
-                                  const Icon(
-                                      Icons.chat_bubble_outline_rounded,
-                                      color: kTextMuted,
-                                      size: 11),
+                                  Icon(Icons.chat_bubble_outline_rounded,
+                                      color: context.textMuted, size: 11),
                                   const SizedBox(width: 3),
-                                  Text(
-                                    '${a.comments.length}',
-                                    style: const TextStyle(
-                                      color: kTextMuted,
-                                      fontSize: 10,
-                                    ),
-                                  ),
+                                  Text('${a.comments.length}',
+                                      style: TextStyle(
+                                          color: context.textMuted,
+                                          fontSize: 10)),
                                 ],
                               ),
                             ],
@@ -1097,6 +1053,217 @@ class _RecommendedSection extends StatelessWidget {
     );
   }
 }
+
+// ── Ad banner ──────────────────────────────────────────────────────────────────
+
+class _AdBanner extends StatelessWidget {
+  final String imageUrl;
+  const _AdBanner({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: context.surface,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: context.border),
+          ),
+          child: Text(
+            'REKLAMA',
+            style: TextStyle(
+              color: context.textMuted,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(
+            imageUrl,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Inline article image ───────────────────────────────────────────────────────
+
+class _ArticleImage extends StatelessWidget {
+  final String imageUrl;
+  final String? caption;
+  const _ArticleImage({required this.imageUrl, this.caption});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(
+            imageUrl,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+        if (caption != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            caption!,
+            style: TextStyle(
+              color: context.textMuted,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── YouTube card ───────────────────────────────────────────────────────────────
+
+class _YouTubeCard extends StatelessWidget {
+  final String videoId;
+  const _YouTubeCard({required this.videoId});
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbUrl = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+    final watchUrl = 'https://www.youtube.com/watch?v=$videoId';
+    return GestureDetector(
+      onTap: () => launchUrl(Uri.parse(watchUrl), mode: LaunchMode.externalApplication),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: context.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Image.network(
+                thumbUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: context.surface,
+                  child: Icon(Icons.play_circle_outline_rounded,
+                      color: context.textMuted, size: 48),
+                ),
+              ),
+            ),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF0000),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 32),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Instagram card ─────────────────────────────────────────────────────────────
+
+class _InstagramCard extends StatelessWidget {
+  final String postUrl;
+  const _InstagramCard({required this.postUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => launchUrl(Uri.parse(postUrl), mode: LaunchMode.externalApplication),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: context.border),
+          color: context.surface,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFF58529),
+                    Color(0xFFDD2A7B),
+                    Color(0xFF8134AF),
+                    Color(0xFF515BD4),
+                  ],
+                ),
+              ),
+              child: const Icon(Icons.photo_camera_rounded,
+                  color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Instagram objava',
+                    style: TextStyle(
+                      color: context.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Pogledaj na Instagramu',
+                    style: TextStyle(
+                      color: context.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded,
+                color: context.textMuted, size: 14),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Category badge ─────────────────────────────────────────────────────────────
 
 class _CategoryBadge extends StatelessWidget {
   final String label;

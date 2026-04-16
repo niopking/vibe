@@ -63,7 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '392855434462',
     projectId: 'vibe-a0b9d',
     storageBucket: 'vibe-a0b9d.firebasestorage.app',
-    iosBundleId: 'com.example.vibe',
+    iosBundleId: 'com.vibeadria.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -72,7 +72,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '392855434462',
     projectId: 'vibe-a0b9d',
     storageBucket: 'vibe-a0b9d.firebasestorage.app',
-    iosBundleId: 'com.example.vibe',
+    iosBundleId: 'com.vibeadria.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

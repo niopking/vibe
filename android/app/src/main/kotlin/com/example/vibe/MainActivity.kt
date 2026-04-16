@@ -1,4 +1,4 @@
-package com.example.vibe
+package com.vibeadria.app
 
 import io.flutter.embedding.android.FlutterActivity
 

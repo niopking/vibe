@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-const _kOrange = Color(0xFFFF8200);
-const _kDark = Color(0xFF161616);
-const _kGrey = Color(0xFF2A2A2A);
-const _kTextMuted = Color(0xFF888888);
+import 'app_theme.dart';
 
 const _heroImage =
     'https://vibeadria.com/wp-content/uploads/2025/08/Vibe-Adria-Wallpaper-1-1044x587.png';
@@ -157,7 +153,7 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
 
     if (_sent) {
       return Scaffold(
-        backgroundColor: _kDark,
+        backgroundColor: context.bg,
         body: SafeArea(
           child: _SuccessView(onBack: () => Navigator.pop(context)),
         ),
@@ -165,7 +161,7 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: _kDark,
+      backgroundColor: context.bg,
       body: Stack(
         children: [
           // ── Fixed hero image ────────────────────────────────────
@@ -176,10 +172,10 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
               _heroImage,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                color: _kGrey,
-                child: const Center(
+                color: context.surfaceLight,
+                child: Center(
                   child: Icon(Icons.image_outlined,
-                      color: _kTextMuted, size: 48),
+                      color: context.textMuted, size: 48),
                 ),
               ),
             ),
@@ -232,13 +228,12 @@ class _MojVibeScreenState extends State<MojVibeScreen> {
                       border: Border.all(
                           color: Colors.white.withValues(alpha: 0.12)),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.favorite_rounded,
-                            color: _kOrange, size: 16),
-                        const SizedBox(width: 4),
-                        const Text(
+                        Icon(Icons.favorite_rounded, color: kOrange, size: 16),
+                        SizedBox(width: 4),
+                        Text(
                           'Vibe',
                           style: TextStyle(
                             color: Colors.white,
@@ -349,13 +344,13 @@ class _MojiPrijedloziSection extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _kOrange.withValues(alpha: 0.12),
+                            color: kOrange.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             data['kategorija'] as String? ?? '',
                             style: const TextStyle(
-                                color: _kOrange,
+                                color: kOrange,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600),
                           ),
@@ -364,15 +359,15 @@ class _MojiPrijedloziSection extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             _fmtTimestamp(ts),
-                            style: const TextStyle(
-                                color: _kTextMuted, fontSize: 11),
+                            style: TextStyle(
+                                color: context.textMuted, fontSize: 11),
                           ),
                         ],
                       ],
                     ),
                     if (feedback.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      const Divider(color: Colors.white12, height: 1),
+                      Divider(color: context.divider, height: 1),
                       const SizedBox(height: 10),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,254 +436,242 @@ class _FormView extends StatelessWidget {
         children: [
           SizedBox(height: imageOffset),
           Container(
-            decoration: const BoxDecoration(
-              color: _kDark,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            decoration: BoxDecoration(
+              color: context.bg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-          // ── Header ──────────────────────────────────────────────────
-          const _PageTitle('Moj Vibe'),
-          const SizedBox(height: 8),
+                const _PageTitle('Moj Vibe'),
+                const SizedBox(height: 8),
 
-          // ── About Moj Vibe ──────────────────────────────────────────
-          _infoCard([
-            const Text(
-              'Vibe je više od sajta – to je osjećaj koji ostaje.',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Vibe Adria je regionalni lifestyle portal koji spaja inspiraciju, putovanja, događaje, sport, muziku, ljude i priče s karakterom. Kroz svjež i pažljivo odabran sadržaj, u prepoznatljivom tonu koji ne podilazi, ali uvijek poziva – nudimo ti dnevnu dozu dobrog vibea.',
-              style: TextStyle(
-                  color: Color(0xFFCCCCCC), fontSize: 14, height: 1.65),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Vjerujemo u sadržaj koji ima glas, u teme koje ostavljaju trag, i u pristup koji ne robuje trendovima, već ih stvara.',
-              style: TextStyle(
-                  color: Color(0xFFCCCCCC), fontSize: 14, height: 1.65),
-            ),
-          ]),
-
-          const SizedBox(height: 16),
-
-          // ── Poziv za saradnju ───────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  _kOrange.withValues(alpha: 0.18),
-                  _kOrange.withValues(alpha: 0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _kOrange.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: _kOrange.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                _infoCard(context, [
+                  Text(
+                    'Vibe je više od sajta – to je osjećaj koji ostaje.',
+                    style: TextStyle(
+                      color: context.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
+                    ),
                   ),
-                  child: const Icon(Icons.edit_note_rounded,
-                      color: _kOrange, size: 24),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
+                  const SizedBox(height: 12),
+                  Text(
+                    'Vibe Adria je regionalni lifestyle portal koji spaja inspiraciju, putovanja, događaje, sport, muziku, ljude i priče s karakterom. Kroz svjež i pažljivo odabran sadržaj, u prepoznatljivom tonu koji ne podilazi, ali uvijek poziva – nudimo ti dnevnu dozu dobrog vibea.',
+                    style: TextStyle(color: context.textBody, fontSize: 14, height: 1.65),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Vjerujemo u sadržaj koji ima glas, u teme koje ostavljaju trag, i u pristup koji ne robuje trendovima, već ih stvara.',
+                    style: TextStyle(color: context.textBody, fontSize: 14, height: 1.65),
+                  ),
+                ]),
+
+                const SizedBox(height: 16),
+
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        kOrange.withValues(alpha: 0.18),
+                        kOrange.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: kOrange.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Imaš priču koja vrijedi?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: kOrange.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: const Icon(Icons.edit_note_rounded,
+                            color: kOrange, size: 24),
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Ako imaš pogled na stvarnost koji pokreće, mjesto koje ti je promijenilo ritam dana, misao koja zaslužuje pažnju – podijeli je s nama. Tvoj vibe može postati dio našeg sadržaja.',
-                        style: TextStyle(
-                          color: Color(0xFFCCCCCC),
-                          fontSize: 13,
-                          height: 1.5,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Imaš priču koja vrijedi?',
+                              style: TextStyle(
+                                color: context.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Ako imaš pogled na stvarnost koji pokreće, mjesto koje ti je promijenilo ritam dana, misao koja zaslužuje pažnju – podijeli je s nama. Tvoj vibe može postati dio našeg sadržaja.',
+                              style: TextStyle(
+                                color: context.textBody,
+                                fontSize: 13,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-          // ── Moji prijedlozi ─────────────────────────────────────────
-          if (userId.isNotEmpty) _MojiPrijedloziSection(userId: userId),
+                if (userId.isNotEmpty) _MojiPrijedloziSection(userId: userId),
 
-          // ── Novi prijedlog ──────────────────────────────────────────
-          const _FieldLabel('NOVI PRIJEDLOG'),
-          const SizedBox(height: 16),
+                const _FieldLabel('NOVI PRIJEDLOG'),
+                const SizedBox(height: 16),
 
-          // ── Naslov ──────────────────────────────────────────────────
-          const _FieldLabel('NASLOV ČLANKA'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: titleCtrl,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'O čemu se radi?',
-              filled: true,
-              fillColor: _kGrey,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: _kOrange, width: 1.5),
-              ),
-              hintStyle: const TextStyle(color: _kTextMuted),
-            ),
-            validator: (v) =>
-                (v == null || v.isEmpty) ? 'Unesi naslov' : null,
-          ),
-
-          const SizedBox(height: 20),
-
-          // ── Kategorija ──────────────────────────────────────────────
-          const _FieldLabel('KATEGORIJA'),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: _kGrey,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedCategory,
-                isExpanded: true,
-                dropdownColor: _kGrey,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-                icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                    color: _kTextMuted),
-                items: _categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) onCategoryChanged(v);
-                },
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // ── Sadržaj ─────────────────────────────────────────────────
-          const _FieldLabel('OPIS / SADRŽAJ'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: contentCtrl,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 5,
-            decoration: InputDecoration(
-              hintText: 'Ukratko opiši o čemu se radi, gdje si dobio info...',
-              alignLabelWithHint: true,
-              filled: true,
-              fillColor: _kGrey,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: _kOrange, width: 1.5),
-              ),
-              hintStyle: const TextStyle(color: _kTextMuted),
-            ),
-            validator: (v) =>
-                (v == null || v.isEmpty) ? 'Unesi opis' : null,
-          ),
-
-          const SizedBox(height: 20),
-
-          // ── Kontakt ─────────────────────────────────────────────────
-          const _FieldLabel('KONTAKT (opcionalno)'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: contactCtrl,
-            style: const TextStyle(color: Colors.white),
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              hintText: 'Email ili broj telefona',
-              filled: true,
-              fillColor: _kGrey,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: _kOrange, width: 1.5),
-              ),
-              hintStyle: const TextStyle(color: _kTextMuted),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // ── Submit ──────────────────────────────────────────────────
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton(
-              onPressed: loading ? null : onSubmit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kOrange,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
-              ),
-              child: loading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text(
-                      'Pošalji prijedlog',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                const _FieldLabel('NASLOV ČLANKA'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: titleCtrl,
+                  style: TextStyle(color: context.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'O čemu se radi?',
+                    filled: true,
+                    fillColor: context.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
                     ),
-            ),
-          ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: kOrange, width: 1.5),
+                    ),
+                    hintStyle: TextStyle(color: context.textMuted),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Unesi naslov' : null,
+                ),
+
+                const SizedBox(height: 20),
+
+                const _FieldLabel('KATEGORIJA'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: context.surface,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedCategory,
+                      isExpanded: true,
+                      dropdownColor: context.surface,
+                      style: TextStyle(color: context.textPrimary, fontSize: 15),
+                      icon: Icon(Icons.keyboard_arrow_down_rounded,
+                          color: context.textMuted),
+                      items: _categories
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) onCategoryChanged(v);
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const _FieldLabel('OPIS / SADRŽAJ'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: contentCtrl,
+                  style: TextStyle(color: context.textPrimary),
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    hintText: 'Ukratko opiši o čemu se radi, gdje si dobio info...',
+                    alignLabelWithHint: true,
+                    filled: true,
+                    fillColor: context.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: kOrange, width: 1.5),
+                    ),
+                    hintStyle: TextStyle(color: context.textMuted),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Unesi opis' : null,
+                ),
+
+                const SizedBox(height: 20),
+
+                const _FieldLabel('KONTAKT (opcionalno)'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: contactCtrl,
+                  style: TextStyle(color: context.textPrimary),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'Email ili broj telefona',
+                    filled: true,
+                    fillColor: context.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: kOrange, width: 1.5),
+                    ),
+                    hintStyle: TextStyle(color: context.textMuted),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: loading ? null : onSubmit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kOrange,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text(
+                            'Pošalji prijedlog',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -716,31 +699,30 @@ class _SuccessView extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: _kOrange.withValues(alpha: 0.15),
+                color: kOrange.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: _kOrange.withValues(alpha: 0.4),
+                  color: kOrange.withValues(alpha: 0.4),
                   width: 1.5,
                 ),
               ),
-              child: const Icon(Icons.check_rounded,
-                  color: _kOrange, size: 40),
+              child: const Icon(Icons.check_rounded, color: kOrange, size: 40),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Prijedlog poslan!',
               style: TextStyle(
-                color: Colors.white,
+                color: context.textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Hvala ti! Naša redakcija će pregledati tvoj prijedlog i javiti se ako bude odabran.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFFAAAAAA),
+                color: context.textMuted,
                 fontSize: 15,
                 height: 1.6,
               ),
@@ -752,8 +734,8 @@ class _SuccessView extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: onBack,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white24),
+                  foregroundColor: context.textPrimary,
+                  side: BorderSide(color: context.border),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -768,13 +750,13 @@ class _SuccessView extends StatelessWidget {
   }
 }
 
-Widget _infoCard(List<Widget> children) {
+Widget _infoCard(BuildContext context, List<Widget> children) {
   return Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: const Color(0xFF1A1A1A),
+      color: context.card,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      border: Border.all(color: context.border),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -793,8 +775,8 @@ class _PageTitle extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8, bottom: 10),
       child: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: context.textPrimary,
           fontSize: 28,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
@@ -813,7 +795,7 @@ class _FieldLabel extends StatelessWidget {
     return Text(
       label,
       style: const TextStyle(
-        color: _kOrange,
+        color: kOrange,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,

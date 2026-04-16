@@ -1,10 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-const kOrange = Color(0xFFF99427);
-const kDark   = Color(0xFF161616);
-const kGrey   = Color(0xFF2A2A2A);
+import 'app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,8 +46,8 @@ class _LoginScreenState extends State<LoginScreen> {
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: const Color(0xFF323232),
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.error_outline, color: Color(0xFFFFB74D)),
                   SizedBox(width: 12),
                   Expanded(child: Text('Pogrešan email ili lozinka.', style: TextStyle(color: Colors.white))),
@@ -71,8 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: const Color(0xFF323232),
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.error_outline, color: Color(0xFFFFB74D)),
                   SizedBox(width: 12),
                   Expanded(child: Text('Pogrešan email ili lozinka.', style: TextStyle(color: Colors.white))),
@@ -84,8 +81,13 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+      // Load user's theme preference from Firebase
+      final userDarkMode = (userDoc.data()['darkMode'] as bool?) ?? true;
+      darkModeNotifier.value = userDarkMode;
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', userDoc.id);
+      await prefs.setBool('darkMode', userDarkMode);
       await prefs.remove('isGuest');
       if (_rememberMe) {
         await prefs.setBool('rememberMe', true);
@@ -120,7 +122,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: buildDarkTheme(),
+      child: Builder(builder: (context) => Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -134,21 +138,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 12),
                 Text('Dobrodošao nazad', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Prijavi se na svoj nalog',
-                  style: TextStyle(color: Color(0xFF888888), fontSize: 15),
+                  style: TextStyle(color: context.textMuted, fontSize: 15),
                 ),
 
                 const SizedBox(height: 24),
-                const _FieldLabel('EMAIL ADRESA'),
+                _FieldLabel('EMAIL ADRESA'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  keyboardAppearance: Brightness.dark,
+                  style: TextStyle(color: context.textPrimary),
+                  decoration: InputDecoration(
                     hintText: 'tvoj@email.com',
-                    prefixIcon: Icon(Icons.mail_outline_rounded, color: Color(0xFF666666), size: 20),
+                    prefixIcon: Icon(Icons.mail_outline_rounded, color: context.textMuted, size: 20),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Unesi email adresu';
@@ -158,19 +163,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
 
                 const SizedBox(height: 16),
-                const _FieldLabel('LOZINKA'),
+                _FieldLabel('LOZINKA'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passCtrl,
                   obscureText: _obscure,
-                  style: const TextStyle(color: Colors.white),
+                  keyboardAppearance: Brightness.dark,
+                  style: TextStyle(color: context.textPrimary),
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF666666), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: context.textMuted, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: const Color(0xFF666666),
+                        color: context.textMuted,
                         size: 20,
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),
@@ -232,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("Nemaš nalog?  ", style: TextStyle(color: Color(0xFF888888))),
+                      Text("Nemaš nalog?  ", style: TextStyle(color: context.textMuted)),
                       GestureDetector(
                         onTap: () => Navigator.pushReplacementNamed(context, '/signup'),
                         child: const Text(
@@ -248,8 +254,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
-    );
+      )),
+    ));
   }
 }
 
@@ -263,7 +269,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+      style: TextStyle(color: context.textMuted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
     );
   }
 }
@@ -273,14 +279,14 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider(color: Colors.white12, thickness: 1)),
+        Expanded(child: Divider(color: context.divider, thickness: 1)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14),
-          child: Text('ili', style: TextStyle(color: Color(0xFF666666), fontSize: 13)),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text('ili', style: TextStyle(color: context.textMuted, fontSize: 13)),
         ),
-        Expanded(child: Divider(color: Colors.white12, thickness: 1)),
+        Expanded(child: Divider(color: context.divider, thickness: 1)),
       ],
     );
   }
@@ -304,13 +310,13 @@ class _Checkbox extends StatelessWidget {
             width: 22, height: 22,
             decoration: BoxDecoration(
               color: value ? kOrange : Colors.transparent,
-              border: Border.all(color: value ? kOrange : const Color(0xFF555555), width: 1.5),
+              border: Border.all(color: value ? kOrange : context.textMuted.withValues(alpha: 0.5), width: 1.5),
               borderRadius: BorderRadius.circular(6),
             ),
             child: value ? const Icon(Icons.check_rounded, color: Colors.white, size: 14) : null,
           ),
           const SizedBox(width: 10),
-          Text(label, style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 14)),
+          Text(label, style: TextStyle(color: context.textMuted, fontSize: 14)),
         ],
       ),
     );

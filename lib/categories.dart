@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
+import 'app_theme.dart';
 import 'jedna_kategorija.dart';
 
-const kOrange = Color(0xFFFF8200);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
-const kTextMuted = Color(0xFF888888);
-
 // Shared state — which categories the user has muted.
-// Home feed listens to this so disabled categories disappear everywhere.
 final ValueNotifier<Set<String>> disabledCategoriesNotifier =
     ValueNotifier<Set<String>>(<String>{});
 
@@ -61,11 +56,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Kategorije',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: context.textPrimary,
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
                             ),
@@ -80,21 +75,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                             decoration: BoxDecoration(
                               color: isLocked
                                   ? kOrange.withValues(alpha: 0.18)
-                                  : Colors.white.withValues(alpha: 0.06),
+                                  : context.ghostBg,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: isLocked
                                     ? kOrange.withValues(alpha: 0.45)
-                                    : Colors.white.withValues(alpha: 0.08),
+                                    : context.border,
                                 width: 0.9,
                               ),
                             ),
                             child: Icon(
-                              isLocked
-                                  ? Icons.lock_rounded
-                                  : Icons.lock_open_rounded,
+                              isLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
                               size: 18,
-                              color: isLocked ? kOrange : kTextMuted,
+                              color: isLocked ? kOrange : context.textMuted,
                             ),
                           ),
                         ),
@@ -105,8 +98,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.info_outline_rounded,
-                            color: kTextMuted, size: 14),
+                        Icon(Icons.info_outline_rounded,
+                            color: context.textMuted, size: 14),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -115,8 +108,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                 : disabled.isEmpty
                                     ? 'Klikni ikonicu da sakriješ kategoriju'
                                     : '${disabled.length} sakrivenih kategorija',
-                            style: const TextStyle(
-                              color: kTextMuted,
+                            style: TextStyle(
+                              color: context.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -164,8 +157,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                           onBoxTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  CategoryNewsScreen(category: label),
+                              builder: (_) => CategoryNewsScreen(category: label),
                             ),
                           ),
                         );
@@ -202,10 +194,10 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconBg = isDisabled
-        ? Colors.white.withValues(alpha: 0.06)
+        ? context.ghostBg
         : kOrange.withValues(alpha: 0.15);
-    final iconColor = isDisabled ? kTextMuted : (isLocked ? kTextMuted : kOrange);
-    final labelColor = isDisabled ? kTextMuted : Colors.white;
+    final iconColor = isDisabled ? context.textMuted : (isLocked ? context.textMuted : kOrange);
+    final labelColor = isDisabled ? context.textMuted : context.textPrimary;
 
     return GestureDetector(
       onTap: onBoxTap,
@@ -214,14 +206,10 @@ class _CategoryTile extends StatelessWidget {
         curve: Curves.easeOut,
         decoration: BoxDecoration(
           color: isDisabled
-              ? kGrey.withValues(alpha: 0.55)
-              : kGrey,
+              ? context.surface.withValues(alpha: 0.55)
+              : context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDisabled
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.white.withValues(alpha: 0.06),
-          ),
+          border: Border.all(color: context.border),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         child: Row(
@@ -234,24 +222,18 @@ class _CategoryTile extends StatelessWidget {
                 curve: Curves.easeOut,
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: isLocked
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : iconBg,
+                  color: isLocked ? context.ghostBg : iconBg,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isDisabled
-                        ? Colors.white.withValues(alpha: 0.08)
+                        ? context.border
                         : isLocked
-                            ? Colors.white.withValues(alpha: 0.06)
+                            ? context.border
                             : kOrange.withValues(alpha: 0.35),
                     width: 0.8,
                   ),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 20,
-                ),
+                child: Icon(icon, color: iconColor, size: 20),
               ),
             ),
             const SizedBox(width: 12),
@@ -269,14 +251,14 @@ class _CategoryTile extends StatelessWidget {
                       decoration: isDisabled
                           ? TextDecoration.lineThrough
                           : TextDecoration.none,
-                      decorationColor: kTextMuted,
+                      decorationColor: context.textMuted,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     isDisabled ? 'Sakriveno' : 'Aktivno',
                     style: TextStyle(
-                      color: isDisabled ? kTextMuted : kOrange,
+                      color: isDisabled ? context.textMuted : kOrange,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.3,

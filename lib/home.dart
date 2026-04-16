@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
+import 'app_theme.dart';
 import 'categories.dart';
-import 'saved.dart';
+import 'game.dart';
 import 'profile.dart';
 import 'artikal.dart';
 import 'jedna_kategorija.dart';
 import 'models.dart';
 import 'saved_service.dart';
-
-const kOrange = Color(0xFFFF8200);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
-const kGreyLight = Color(0xFF3A3A3A);
-const kTextMuted = Color(0xFF888888);
 
 // ── Main screen shell ──────────────────────────────────────────────────────────
 
@@ -28,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = const [
     _HomePage(),
     CategoriesScreen(),
-    SavedScreen(),
+    GameScreen(),
     ProfileScreen(),
   ];
 
@@ -50,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDark,
+      backgroundColor: context.bg,
       extendBody: true,
       body: IndexedStack(
         index: _selectedIndex,
@@ -79,24 +74,21 @@ class _BottomNav extends StatelessWidget {
     const items = [
       _NavItem(icon: Icons.home_rounded, label: 'Početna'),
       _NavItem(icon: Icons.grid_view_rounded, label: 'Kategorije'),
-      _NavItem(icon: Icons.bookmark_outline_rounded, selectedIcon: Icons.bookmark_rounded, label: 'Sačuvano'),
+      _NavItem(icon: Icons.sports_esports_outlined, selectedIcon: Icons.sports_esports_rounded, label: 'Igre'),
       _NavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profil'),
     ];
 
     return Container(
       decoration: BoxDecoration(
-        color: kGrey,
+        color: context.surface,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(26),
           topRight: Radius.circular(26),
         ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-          width: 0.6,
-        ),
+        border: Border.all(color: context.border, width: 0.6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withValues(alpha: context.isDark ? 0.35 : 0.10),
             blurRadius: 18,
             offset: const Offset(0, -4),
           ),
@@ -118,7 +110,7 @@ class _BottomNav extends StatelessWidget {
                           ? items[i].selectedIcon!
                           : items[i].icon,
                       size: 30,
-                      color: selected ? kOrange : kTextMuted),
+                      color: selected ? kOrange : context.textMuted),
                 ),
               );
             }),
@@ -166,11 +158,11 @@ class _HomePageState extends State<_HomePage> {
         } else if (snapshot.hasError) {
           return Center(
             child: Text('Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white)),
+                style: TextStyle(color: context.textPrimary)),
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-            child: Text('Nema vijesti', style: TextStyle(color: Colors.white)),
+          return Center(
+            child: Text('Nema vijesti', style: TextStyle(color: context.textMuted)),
           );
         }
 
@@ -200,67 +192,66 @@ class _HomePageState extends State<_HomePage> {
                     onClose: () => setState(() { _searchOpen = false; _searchQuery = ''; }),
                     onChanged: (q) => setState(() => _searchQuery = q),
                   ),
-              Container(
-                height: 0.6,
-                margin: const EdgeInsets.only(top: 7),
-                color: Colors.white.withValues(alpha: 0.12),
-              ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    ListView(
-                      padding: const EdgeInsets.only(bottom: 110),
+                  Container(
+                    height: 0.6,
+                    margin: const EdgeInsets.only(top: 7),
+                    color: context.divider,
+                  ),
+                  Expanded(
+                    child: Stack(
                       children: [
-                        const SizedBox(height: 18),
-                        _LatestSection(articles: latest),
-                    const SizedBox(height: 26),
-                    ...() {
-                      final entries = byCategory.entries.toList();
-                      final widgets = <Widget>[];
-                      for (int i = 0; i < entries.length; i++) {
-                        widgets.add(
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 24),
-                            child: _CategorySection(
-                              category: entries[i].key,
-                              articles: entries[i].value,
+                        ListView(
+                          padding: const EdgeInsets.only(bottom: 110),
+                          children: [
+                            const SizedBox(height: 18),
+                            _LatestSection(articles: latest),
+                            const SizedBox(height: 26),
+                            ...() {
+                              final entries = byCategory.entries.toList();
+                              final widgets = <Widget>[];
+                              for (int i = 0; i < entries.length; i++) {
+                                widgets.add(
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 24),
+                                    child: _CategorySection(
+                                      category: entries[i].key,
+                                      articles: entries[i].value,
+                                    ),
+                                  ),
+                                );
+                                if (i < entries.length - 1) {
+                                  widgets.add(
+                                    Container(
+                                      height: 0.6,
+                                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                                      color: context.divider,
+                                    ),
+                                  );
+                                }
+                              }
+                              return widgets;
+                            }(),
+                          ],
+                        ),
+                        AnimatedSlide(
+                          offset: _searchOpen ? Offset.zero : const Offset(0, 1),
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutCubic,
+                          child: AnimatedOpacity(
+                            opacity: _searchOpen ? 1 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: _SearchPanel(
+                              query: _searchQuery,
+                              articles: allArticles,
                             ),
                           ),
-                        );
-                        if (i < entries.length - 1) {
-                          widgets.add(
-                            Container(
-                              height: 0.6,
-                              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                              color: Colors.white.withValues(alpha: 0.08),
-                            ),
-                          );
-                        }
-                      }
-                      return widgets;
-                    }(),
-                  ],
-                ),
-                // Search panel — slides up from below top bar
-                AnimatedSlide(
-                  offset: _searchOpen ? Offset.zero : const Offset(0, 1),
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
-                  child: AnimatedOpacity(
-                    opacity: _searchOpen ? 1 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: _SearchPanel(
-                      query: _searchQuery,
-                      articles: allArticles,
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-            ],
-          ),
-        );
+                ],
+              ),
+            );
           },
         );
       },
@@ -286,21 +277,19 @@ class _SearchPanel extends StatelessWidget {
             .toList();
 
     return Container(
-      color: kDark,
+      color: context.bg,
       child: results.isEmpty
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.search_rounded,
-                      color: kTextMuted, size: 48),
+                  Icon(Icons.search_rounded, color: context.textMuted, size: 48),
                   const SizedBox(height: 12),
                   Text(
                     query.isEmpty
                         ? 'Počni kucati za pretragu...'
                         : 'Nema rezultata za "$query"',
-                    style: const TextStyle(
-                        color: kTextMuted, fontSize: 14),
+                    style: TextStyle(color: context.textMuted, fontSize: 14),
                   ),
                 ],
               ),
@@ -319,10 +308,9 @@ class _SearchPanel extends StatelessWidget {
                   ),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: kGrey,
+                      color: context.surface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(color: context.border),
                     ),
                     child: Row(
                       children: [
@@ -337,7 +325,7 @@ class _SearchPanel extends StatelessWidget {
                             child: Image.network(a.imageUrl,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) =>
-                                    Container(color: kGreyLight)),
+                                    Container(color: context.surfaceLight)),
                           ),
                         ),
                         Expanded(
@@ -349,8 +337,8 @@ class _SearchPanel extends StatelessWidget {
                                 _CategoryBadge(label: a.category),
                                 const SizedBox(height: 6),
                                 Text(a.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: context.textPrimary,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                       height: 1.35,
@@ -359,8 +347,8 @@ class _SearchPanel extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis),
                                 const SizedBox(height: 6),
                                 Text(a.date,
-                                    style: const TextStyle(
-                                        color: kTextMuted, fontSize: 10)),
+                                    style: TextStyle(
+                                        color: context.textMuted, fontSize: 10)),
                               ],
                             ),
                           ),
@@ -424,7 +412,6 @@ class _TopBarState extends State<_TopBar> {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(
         children: [
-          // Logo shrinks when expanded
           AnimatedContainer(
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeInOut,
@@ -443,8 +430,6 @@ class _TopBarState extends State<_TopBar> {
             curve: Curves.easeInOut,
             width: _expanded ? 0 : 12,
           ),
-
-          // Search bar — expands to full width
           Expanded(
             child: GestureDetector(
               onTap: _expanded ? null : _open,
@@ -453,56 +438,48 @@ class _TopBarState extends State<_TopBar> {
                 curve: Curves.easeInOut,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: kGrey,
+                  color: context.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                  ),
+                  border: Border.all(color: context.border),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
-                    const Icon(Icons.search_rounded,
-                        color: kTextMuted, size: 18),
+                    Icon(Icons.search_rounded, color: context.textMuted, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _expanded
                           ? TextField(
                               controller: _controller,
                               focusNode: _focus,
-                              cursorColor: Colors.white,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 13),
+                              cursorColor: kOrange,
+                              style: TextStyle(color: context.textPrimary, fontSize: 13),
                               onChanged: widget.onChanged,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
                                 filled: true,
                                 fillColor: Colors.transparent,
                                 hintText: 'Pretraži vijesti...',
-                                hintStyle: TextStyle(
-                                    color: kTextMuted, fontSize: 13),
+                                hintStyle: TextStyle(color: context.textMuted, fontSize: 13),
                                 isDense: true,
                                 contentPadding: EdgeInsets.zero,
                               ),
                             )
-                          : const Text('Pretraži vijesti...',
-                              style: TextStyle(
-                                  color: kTextMuted, fontSize: 13)),
+                          : Text('Pretraži vijesti...',
+                              style: TextStyle(color: context.textMuted, fontSize: 13)),
                     ),
                     if (_expanded)
                       GestureDetector(
                         onTap: _close,
-                        child: const Icon(Icons.close_rounded,
-                            color: kTextMuted, size: 18),
+                        child: Icon(Icons.close_rounded, color: context.textMuted, size: 18),
                       ),
                   ],
                 ),
               ),
             ),
           ),
-
         ],
       ),
     );
@@ -552,10 +529,10 @@ class _LatestSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'NAJNOVIJE',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
@@ -566,10 +543,7 @@ class _LatestSection extends StatelessWidget {
                 const Spacer(),
                 Text(
                   '${articles.length} vijesti',
-                  style: const TextStyle(
-                    color: kTextMuted,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: context.textMuted, fontSize: 11),
                 ),
               ],
             ),
@@ -614,7 +588,7 @@ class _LatestCard extends StatelessWidget {
               Image.network(
                 article.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: kGrey),
+                errorBuilder: (_, __, ___) => Container(color: context.surfaceLight),
               ),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -708,8 +682,8 @@ class _CategorySection extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   category.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.6,
@@ -784,7 +758,7 @@ class _FeaturedCard extends StatelessWidget {
         children: [
           Image.network(article.imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: kGrey)),
+              errorBuilder: (_, __, ___) => Container(color: context.surfaceLight)),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -854,11 +828,9 @@ class _SmallCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: kGrey,
+          color: context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
+          border: Border.all(color: context.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -873,7 +845,7 @@ class _SmallCard extends StatelessWidget {
                 child: Image.network(
                   article.imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: kGreyLight),
+                  errorBuilder: (_, __, ___) => Container(color: context.surfaceLight),
                 ),
               ),
             ),
@@ -886,8 +858,8 @@ class _SmallCard extends StatelessWidget {
                     height: 34,
                     child: Text(
                       article.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         height: 1.3,
@@ -899,10 +871,7 @@ class _SmallCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     article.date,
-                    style: const TextStyle(
-                      color: kTextMuted,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: context.textMuted, fontSize: 10),
                   ),
                 ],
               ),
@@ -977,7 +946,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDark,
+      backgroundColor: context.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -987,36 +956,31 @@ class _SearchScreenState extends State<SearchScreen> {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_rounded,
-                        color: Colors.white),
+                    icon: Icon(Icons.arrow_back_rounded, color: context.textPrimary),
                   ),
                   Expanded(
                     child: Container(
                       height: 40,
                       decoration: BoxDecoration(
-                        color: kGrey,
+                        color: context.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.12),
-                        ),
+                        border: Border.all(color: context.border),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(
                         children: [
-                          const Icon(Icons.search_rounded,
-                              color: kTextMuted, size: 18),
+                          Icon(Icons.search_rounded, color: context.textMuted, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
                               controller: _controller,
                               autofocus: true,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 13),
-                              decoration: const InputDecoration(
+                              style: TextStyle(color: context.textPrimary, fontSize: 13),
+                              cursorColor: kOrange,
+                              decoration: InputDecoration(
                                 border: InputBorder.none,
                                 hintText: 'Pretraži vijesti...',
-                                hintStyle:
-                                    TextStyle(color: kTextMuted, fontSize: 13),
+                                hintStyle: TextStyle(color: context.textMuted, fontSize: 13),
                                 isDense: true,
                                 contentPadding: EdgeInsets.zero,
                               ),
@@ -1029,8 +993,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 _controller.clear();
                                 setState(() => _query = '');
                               },
-                              child: const Icon(Icons.close_rounded,
-                                  color: kTextMuted, size: 18),
+                              child: Icon(Icons.close_rounded, color: context.textMuted, size: 18),
                             ),
                         ],
                       ),
@@ -1039,39 +1002,33 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
-            Container(
-              height: 0.6,
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
+            Container(height: 0.6, color: context.divider),
             Expanded(
               child: FutureBuilder<List<Article>>(
                 future: _articlesFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                        child:
-                            CircularProgressIndicator(color: kOrange));
+                        child: CircularProgressIndicator(color: kOrange));
                   }
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text('Nema vijesti',
-                          style: TextStyle(color: kTextMuted)),
+                          style: TextStyle(color: context.textMuted)),
                     );
                   }
 
                   final all = snapshot.data!;
 
                   if (_query.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.search_rounded,
-                              color: kTextMuted, size: 48),
-                          SizedBox(height: 12),
+                          Icon(Icons.search_rounded, color: context.textMuted, size: 48),
+                          const SizedBox(height: 12),
                           Text('Ukucaj pojam za pretragu',
-                              style: TextStyle(
-                                  color: kTextMuted, fontSize: 14)),
+                              style: TextStyle(color: context.textMuted, fontSize: 14)),
                         ],
                       ),
                     );
@@ -1089,12 +1046,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.search_off_rounded,
-                              color: kTextMuted, size: 48),
+                          Icon(Icons.search_off_rounded, color: context.textMuted, size: 48),
                           const SizedBox(height: 12),
                           Text('Nema rezultata za "$_query"',
-                              style: const TextStyle(
-                                  color: kTextMuted, fontSize: 14)),
+                              style: TextStyle(color: context.textMuted, fontSize: 14)),
                         ],
                       ),
                     );
@@ -1114,11 +1069,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: kGrey,
+                            color: context.surface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.05),
-                            ),
+                            border: Border.all(color: context.border),
                           ),
                           child: Row(
                             children: [
@@ -1134,7 +1087,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                     a.imageUrl,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, __, ___) =>
-                                        Container(color: kGreyLight),
+                                        Container(color: context.surfaceLight),
                                   ),
                                 ),
                               ),
@@ -1142,15 +1095,14 @@ class _SearchScreenState extends State<SearchScreen> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       _CategoryBadge(label: a.category),
                                       const SizedBox(height: 6),
                                       Text(
                                         a.title,
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: context.textPrimary,
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
                                           height: 1.35,
@@ -1161,8 +1113,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                       const SizedBox(height: 8),
                                       Text(
                                         a.date,
-                                        style: const TextStyle(
-                                          color: kTextMuted,
+                                        style: TextStyle(
+                                          color: context.textMuted,
                                           fontSize: 10,
                                         ),
                                       ),
@@ -1185,4 +1137,3 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
-

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_theme.dart';
 
-const kOrange = Color(0xFFF99427);
 const kDark   = Color(0xFF161616);
 const kGrey   = Color(0xFF2A2A2A);
 
@@ -17,7 +17,9 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: buildDarkTheme(),
+      child: Scaffold(
       backgroundColor: kDark,
       body: SafeArea(
         child: Column(
@@ -116,6 +118,6 @@ class WelcomeScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }

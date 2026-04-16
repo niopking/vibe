@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-
-const kOrange = Color(0xFFFF8200);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
-const kTextMuted = Color(0xFF888888);
+import 'package:shared_preferences/shared_preferences.dart';
+import 'app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,7 +11,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
-  bool _darkMode = true;
+  bool _darkMode = darkModeNotifier.value;
   bool _autoplay = false;
 
   @override
@@ -24,12 +21,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
               'Podešavanja',
               style: TextStyle(
-                color: Colors.white,
+                color: context.textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
               ),
@@ -48,7 +45,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.dark_mode_outlined,
             title: 'Tamni način',
             value: _darkMode,
-            onChanged: (v) => setState(() => _darkMode = v),
+            onChanged: (v) async {
+              setState(() => _darkMode = v);
+              darkModeNotifier.value = v;
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('darkMode', v);
+            },
           ),
           _ToggleTile(
             icon: Icons.play_circle_outline_rounded,
@@ -119,18 +121,18 @@ class _ToggleTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
+        color: context.surface,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.border),
       ),
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14),
         secondary: Icon(icon, color: kOrange, size: 22),
-        title: Text(title,
-            style: const TextStyle(color: Colors.white, fontSize: 14)),
+        title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14)),
         value: value,
         onChanged: onChanged,
         activeThumbColor: kOrange,
-        inactiveTrackColor: Colors.white12,
+        inactiveTrackColor: context.ghostBg,
       ),
     );
   }
@@ -153,23 +155,21 @@ class _ActionTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
+        color: context.surface,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.border),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14),
         leading: Icon(icon, color: kOrange, size: 22),
-        title: Text(title,
-            style: const TextStyle(color: Colors.white, fontSize: 14)),
+        title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (trailing != null)
-              Text(trailing!,
-                  style: const TextStyle(color: kTextMuted, fontSize: 13)),
+              Text(trailing!, style: TextStyle(color: context.textMuted, fontSize: 13)),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
-                color: kTextMuted, size: 18),
+            Icon(Icons.chevron_right_rounded, color: context.textMuted, size: 18),
           ],
         ),
         onTap: onTap,

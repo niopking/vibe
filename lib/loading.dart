@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
+import 'app_theme.dart';
 import 'models.dart';
-
-const kOrange = Color(0xFFF99427);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
 
 class LoadingScreen extends StatefulWidget {
   final String nextRoute;
@@ -21,7 +18,6 @@ class _LoadingScreenState extends State<LoadingScreen>
 
   late final Animation<double> _logoScale;
   late final Animation<double> _logoFade;
-  late final Animation<double> _barWidth;
   late final Animation<double> _screenFade;
 
   @override
@@ -33,54 +29,59 @@ class _LoadingScreenState extends State<LoadingScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _logoScale = CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.elasticOut,
-    );
-    _logoFade = CurvedAnimation(parent: _logoController, curve: Curves.easeIn);
+    _logoScale = CurvedAnimation(parent: _logoController, curve: Curves.elasticOut);
+    _logoFade  = CurvedAnimation(parent: _logoController, curve: Curves.easeIn);
 
-    // Progress bar — bounce naprijed-nazad dok traje učitavanje
-    _barController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    _barWidth = CurvedAnimation(
-      parent: _barController,
-      curve: Curves.easeInOut,
-    );
+    // Progress bar — bez fiksne krive, kontrolišemo ručno
+    _barController = AnimationController(vsync: this);
 
-    // Fade out whole screen
+    // Fade out samo sadržaja (ne cijelog Scaffolda!)
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
     );
-    _screenFade = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
+    _screenFade = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+    );
 
     _startSequence();
   }
 
   void _startSequence() async {
-    // Startuj fetch odmah paralelno sa animacijom
     final fetchFuture = fetchArticles();
 
     await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
     _logoController.forward();
 
-    await Future.delayed(const Duration(milliseconds: 500));
-    _barController.repeat(reverse: true); // neprestano dok ne učita
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
 
-    // Čekaj minimalno trajanje I kraj fetcha
+    // Bar ide do 85% u 2.5s s easeOut — kreće brzo, usporava pri kraju
+    _barController.animateTo(
+      0.85,
+      duration: const Duration(milliseconds: 2500),
+      curve: Curves.easeOut,
+    );
+
+    // Čekaj minimalno 2s I kraj fetcha
     await Future.wait([
       Future.delayed(const Duration(milliseconds: 2000)),
       fetchFuture,
     ]);
+    if (!mounted) return;
 
-    _barController.stop();
-    _fadeController.forward();
-    await Future.delayed(const Duration(milliseconds: 420));
+    // Glatko popuni zadnjih 15% do 100%
+    await _barController.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeInOut,
+    );
+    if (!mounted) return;
+
+    // Fade out sadržaja, Scaffold ostaje taman
+    await _fadeController.forward();
+    await Future.delayed(const Duration(milliseconds: 80));
     if (mounted) Navigator.pushReplacementNamed(context, widget.nextRoute);
   }
 
@@ -94,11 +95,13 @@ class _LoadingScreenState extends State<LoadingScreen>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _screenFade,
-      child: Scaffold(
-        backgroundColor: kDark,
-        body: SafeArea(
+    return Scaffold(
+      // Uvijek tamna — loading screen je branded, ne mijenja se s temom
+      backgroundColor: const Color(0xFF161616),
+      body: SafeArea(
+        child: FadeTransition(
+          // Samo sadržaj fades, Scaffold pozadina ostaje tamna → nema bijelog flasha
+          opacity: _screenFade,
           child: Column(
             children: [
               const Spacer(flex: 3),
@@ -148,13 +151,13 @@ class _LoadingScreenState extends State<LoadingScreen>
                       borderRadius: BorderRadius.circular(100),
                       child: Container(
                         height: 3,
-                        color: kGrey,
+                        color: const Color(0xFF2A2A2A),
                         child: AnimatedBuilder(
-                          animation: _barWidth,
+                          animation: _barController,
                           builder: (context, _) {
                             return FractionallySizedBox(
                               alignment: Alignment.centerLeft,
-                              widthFactor: _barWidth.value,
+                              widthFactor: _barController.value,
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: kOrange,

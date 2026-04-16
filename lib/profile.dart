@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'app_theme.dart';
 import 'about_us.dart';
 import 'marketing.dart';
 import 'moj_vibe.dart';
-
-const kOrange = Color(0xFFFF8200);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
-const kTextMuted = Color(0xFF888888);
+import 'saved.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -140,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: context.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -160,13 +156,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Promijeni lozinku',
+                    Text('Promijeni lozinku',
                         style: TextStyle(
-                            color: Colors.white,
+                            color: ctx.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 20),
                     _buildPassField(
+                      ctx: ctx,
                       ctrl: currentCtrl,
                       label: 'Trenutna lozinka',
                       obscure: obscure1,
@@ -176,6 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildPassField(
+                      ctx: ctx,
                       ctrl: newCtrl,
                       label: 'Nova lozinka',
                       obscure: obscure2,
@@ -188,6 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildPassField(
+                      ctx: ctx,
                       ctrl: confirmCtrl,
                       label: 'Potvrdi novu lozinku',
                       obscure: obscure3,
@@ -259,6 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildPassField({
+    required BuildContext ctx,
     required TextEditingController ctrl,
     required String label,
     required bool obscure,
@@ -268,15 +268,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return TextFormField(
       controller: ctrl,
       obscureText: obscure,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: ctx.textPrimary),
       decoration: InputDecoration(
         hintText: label,
-        prefixIcon: const Icon(Icons.lock_outline_rounded,
-            color: Color(0xFF666666), size: 20),
+        prefixIcon: Icon(Icons.lock_outline_rounded,
+            color: ctx.textMuted, size: 20),
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: const Color(0xFF666666),
+            color: ctx.textMuted,
             size: 20,
           ),
           onPressed: onToggle,
@@ -300,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: context.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -321,15 +321,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: ctx.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: controller,
                       keyboardType: keyboardType,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: ctx.textPrimary),
                       decoration: InputDecoration(hintText: label),
                       validator: validator,
                       autofocus: true,
@@ -408,18 +408,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: context.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Obriši nalog',
-            style: TextStyle(color: Colors.white, fontSize: 17)),
-        content: const Text(
+        title: Text('Obriši nalog',
+            style: TextStyle(color: context.textPrimary, fontSize: 17)),
+        content: Text(
           'Ova radnja je nepovratna. Svi tvoji podaci će biti trajno izbrisani.',
-          style: TextStyle(color: kTextMuted, height: 1.5),
+          style: TextStyle(color: context.textMuted, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Otkaži', style: TextStyle(color: kTextMuted)),
+            child: Text('Otkaži', style: TextStyle(color: context.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -436,7 +436,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .doc(_userId)
           .delete();
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      // Reset theme to dark for auth screens
+      darkModeNotifier.value = true;
+      await prefs.setBool('darkMode', true);
+      // Clear session data but keep seenWelcome
+      await prefs.remove('userId');
+      await prefs.remove('rememberMe');
+      await prefs.remove('loggedInEmail');
+      await prefs.remove('isGuest');
+      await prefs.remove('marketing');
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
       }
@@ -447,22 +455,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: context.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Odjava',
-            style: TextStyle(color: Colors.white, fontSize: 17)),
-        content: const Text('Sigurno se želiš odjaviti?',
-            style: TextStyle(color: kTextMuted)),
+        title: Text('Odjava',
+            style: TextStyle(color: context.textPrimary, fontSize: 17)),
+        content: Text('Sigurno se želiš odjaviti?',
+            style: TextStyle(color: context.textMuted)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child:
-                const Text('Otkaži', style: TextStyle(color: kTextMuted)),
+            child: Text('Otkaži', style: TextStyle(color: context.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child:
-                const Text('Odjavi se', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Odjavi se', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -470,7 +476,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed == true) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      // Reset theme to dark for auth screens
+      darkModeNotifier.value = true;
+      await prefs.setBool('darkMode', true);
+      // Clear session data but keep seenWelcome
+      await prefs.remove('userId');
+      await prefs.remove('rememberMe');
+      await prefs.remove('loggedInEmail');
+      await prefs.remove('isGuest');
+      await prefs.remove('marketing');
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
       }
@@ -517,8 +531,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: _loadingUser
           ? const Center(child: CircularProgressIndicator(color: kOrange))
           : ListView(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPad + 30),
+              padding: EdgeInsets.fromLTRB(16, 18, 16, bottomPad + 30),
               children: [
+                // ── Profile header ──────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        kOrange.withValues(alpha: 0.14),
+                        kOrange.withValues(alpha: 0.04),
+                        context.surface,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: kOrange.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 74,
+                        height: 74,
+                        decoration: BoxDecoration(
+                          color: kOrange,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: kOrange.withValues(alpha: 0.3),
+                              blurRadius: 24,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            _initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        _email.isNotEmpty ? _email : 'Gost',
+                        style: TextStyle(
+                          color: context.textPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (_age.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '$_age godina',
+                          style: TextStyle(
+                            color: context.textMuted,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
                 // ── Info kartica (nagradna igra i sl.) ─────────────
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
@@ -537,7 +621,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final tekst = data['tekst'] as String? ?? '';
                     final prijavljen = _prijave.contains(docId);
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.only(bottom: 10),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(22),
@@ -553,26 +637,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ],
                         ),
-                        clipBehavior: Clip.hardEdge,
-                        child: Stack(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(21),
+                          child: Stack(
                           children: [
                             // Slika kao pozadina
                             if (slika.isNotEmpty)
                               Image.network(
                                 slika,
                                 width: double.infinity,
-                                height: 220,
+                                height: 178,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
-                                  height: 220,
-                                  color: kGrey,
+                                  height: 178,
+                                  color: context.surface,
                                 ),
                               )
                             else
-                              Container(height: 220, color: kGrey),
+                              Container(height: 178, color: context.surface),
                             // Tamni gradijent odozdo
                             Container(
-                              height: 220,
+                              height: 178,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
@@ -696,83 +781,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ],
                         ),
+                        ),
                       ),
                     );
                   },
                 ),
 
-                // ── Profile header ──────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        kOrange.withValues(alpha: 0.14),
-                        kOrange.withValues(alpha: 0.04),
-                        kGrey,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: kOrange.withValues(alpha: 0.18),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 74,
-                        height: 74,
-                        decoration: BoxDecoration(
-                          color: kOrange,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: kOrange.withValues(alpha: 0.3),
-                              blurRadius: 24,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            _initials,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 30,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        _email.isNotEmpty ? _email : 'Gost',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (_age.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '$_age godina',
-                          style: const TextStyle(
-                            color: kTextMuted,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 28),
+                const SizedBox(height: 4),
 
                 // ── Moj nalog ───────────────────────────────────────
-                const _SectionLabel('MOJ NALOG'),
+                _SectionLabel('MOJ NALOG'),
                 if (_isGuest) ...[
                   GestureDetector(
                     onTap: () => Navigator.pushReplacementNamed(context, '/signup'),
@@ -830,15 +848,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 20),
 
                 // ── Postavke ────────────────────────────────────────
-                const _SectionLabel('POSTAVKE'),
+                _SectionLabel('POSTAVKE'),
                 _ToggleTile(
                   icon: Icons.dark_mode_outlined,
                   title: 'Tamni način',
                   value: _darkMode,
                   onChanged: (v) async {
                     setState(() => _darkMode = v);
+                    darkModeNotifier.value = v;
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('darkMode', v);
+                    // Save to Firebase per user
+                    if (_userId.isNotEmpty) {
+                      FirebaseFirestore.instance
+                          .collection('korisnici')
+                          .doc(_userId)
+                          .update({'darkMode': v});
+                    }
                   },
                 ),
                 if (!_isGuest)
@@ -853,7 +879,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 if (!_isGuest) ...[
                   // ── Moj Vibe ────────────────────────────────────────
-                  const _SectionLabel('MOJ VIBE'),
+                  _SectionLabel('MOJ VIBE'),
+                  _ProfileTile(
+                    icon: Icons.bookmark_outline_rounded,
+                    title: 'Sačuvane vijesti',
+                    subtitle: 'Vijesti koje si sačuvao/la',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SavedScreen()),
+                    ),
+                  ),
                   _ProfileTile(
                     icon: Icons.edit_note_rounded,
                     title: 'Moj Vibe',
@@ -874,7 +909,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 20),
 
                 // ── O nama + Društvene mreže ────────────────────────
-                const _SectionLabel('O NAMA'),
+                _SectionLabel('O NAMA'),
                 _ProfileTile(
                   icon: Icons.info_outline_rounded,
                   title: 'O nama',
@@ -886,18 +921,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding:
                       const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
                   decoration: BoxDecoration(
-                    color: kGrey,
+                    color: context.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
+                    border: Border.all(color: context.border),
                   ),
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         'PRATITE NAS',
                         style: TextStyle(
-                          color: kTextMuted,
+                          color: context.textMuted,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
@@ -922,11 +955,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 'https://www.youtube.com/channel/UCT9_ChwGbeSX6QwtKH8sRnw'),
                           ),
                           _SocialIcon(
-                            icon: Icons.language_rounded,
-                            color: kOrange,
-                            label: 'Sajt',
+                            icon: Icons.facebook_rounded,
+                            color: const Color(0xFF1877F2),
+                            label: 'Facebook',
                             onTap: () => _launchSocialUrl(
-                                'https://vibeadria.com'),
+                                'https://www.facebook.com/vibeadria?mibextid=wwXIfr&rdid=DxnpNZnGVejw2rQJ&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1D696fzKSk%2F%3Fmibextid%3DwwXIfr'),
                           ),
                           _SocialIcon(
                             icon: Icons.music_note_rounded,
@@ -975,17 +1008,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _deleteAccount,
-                    child: const Center(
+                    child: Center(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Text(
                           'Obriši nalog',
                           style: TextStyle(
-                            color: kTextMuted,
+                            color: context.textMuted,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             decoration: TextDecoration.underline,
-                            decorationColor: kTextMuted,
+                            decorationColor: context.textMuted,
                           ),
                         ),
                       ),
@@ -1041,9 +1074,9 @@ class _ProfileTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: kGrey,
+        color: context.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        border: Border.all(color: context.border),
       ),
       child: ListTile(
         contentPadding:
@@ -1061,13 +1094,13 @@ class _ProfileTile extends StatelessWidget {
           child: Icon(icon, color: kOrange, size: 20),
         ),
         title: Text(title,
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600)),
         subtitle: subtitle != null
             ? Text(subtitle!,
-                style: const TextStyle(color: kTextMuted, fontSize: 12))
+                style: TextStyle(color: context.textMuted, fontSize: 12))
             : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1091,8 +1124,8 @@ class _ProfileTile extends StatelessWidget {
                 ),
               ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
-                color: kTextMuted, size: 18),
+            Icon(Icons.chevron_right_rounded,
+                color: context.textMuted, size: 18),
           ],
         ),
         onTap: onTap,
@@ -1119,9 +1152,9 @@ class _ToggleTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: kGrey,
+        color: context.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        border: Border.all(color: context.border),
       ),
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1138,14 +1171,14 @@ class _ToggleTile extends StatelessWidget {
           child: Icon(icon, color: kOrange, size: 20),
         ),
         title: Text(title,
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600)),
         value: value,
         onChanged: onChanged,
         activeThumbColor: kOrange,
-        inactiveTrackColor: Colors.white12,
+        inactiveTrackColor: context.ghostBg,
       ),
     );
   }
@@ -1198,4 +1231,3 @@ class _SocialIcon extends StatelessWidget {
     );
   }
 }
-

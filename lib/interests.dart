@@ -1,9 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
-const kOrange = Color(0xFFF99427);
-const kDark   = Color(0xFF161616);
-const kGrey   = Color(0xFF2A2A2A);
+import 'app_theme.dart';
 
 const _categories = [
   {'emoji': '🎭', 'label': 'Showbizz'},
@@ -81,7 +78,9 @@ class _InterestsScreenState extends State<InterestsScreen> {
   Widget build(BuildContext context) {
     final canContinue = _selected.length >= 3;
 
-    return Scaffold(
+    return Theme(
+      data: buildDarkTheme(),
+      child: Builder(builder: (context) => Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -93,27 +92,26 @@ class _InterestsScreenState extends State<InterestsScreen> {
               const SizedBox(height: 4),
               Text('Izaberi interese', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Odaberi najmanje 3 teme.\nFeed će biti prilagođen tebi.',
-                style: TextStyle(color: Color(0xFF888888), fontSize: 15, height: 1.5),
+                style: TextStyle(color: context.textMuted, fontSize: 15, height: 1.5),
               ),
               const SizedBox(height: 8),
 
-              // Counter badge
               if (_selected.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 4),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: canContinue ? kOrange.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.07),
+                      color: canContinue ? kOrange.withValues(alpha: 0.15) : context.ghostBg,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: canContinue ? kOrange : Colors.white24, width: 1),
+                      border: Border.all(color: canContinue ? kOrange : context.border, width: 1),
                     ),
                     child: Text(
                       '${_selected.length} odabrano${canContinue ? ' ✓' : ''}',
                       style: TextStyle(
-                        color: canContinue ? kOrange : Colors.white60,
+                        color: canContinue ? kOrange : context.textMuted,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -141,10 +139,10 @@ class _InterestsScreenState extends State<InterestsScreen> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         decoration: BoxDecoration(
-                          color: isSelected ? kOrange.withValues(alpha: 0.15) : kGrey,
+                          color: isSelected ? kOrange.withValues(alpha: 0.15) : context.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? kOrange : Colors.transparent,
+                            color: isSelected ? kOrange : context.border,
                             width: 1.5,
                           ),
                         ),
@@ -156,7 +154,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
                             Text(
                               label,
                               style: TextStyle(
-                                color: isSelected ? kOrange : Colors.white70,
+                                color: isSelected ? kOrange : context.textPrimary,
                                 fontSize: 15,
                                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                               ),
@@ -173,8 +171,8 @@ class _InterestsScreenState extends State<InterestsScreen> {
               ElevatedButton(
                 onPressed: canContinue && !_saving ? _saveInterests : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: canContinue ? kOrange : kGrey,
-                  foregroundColor: canContinue ? Colors.white : Colors.white38,
+                  backgroundColor: canContinue ? kOrange : context.surface,
+                  foregroundColor: canContinue ? Colors.white : context.textMuted,
                 ),
                 child: _saving
                     ? const SizedBox(
@@ -188,8 +186,8 @@ class _InterestsScreenState extends State<InterestsScreen> {
             ],
           ),
         ),
-      ),
-    );
+      )),
+    ));
   }
 }
 

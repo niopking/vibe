@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
+import 'app_theme.dart';
 import 'models.dart';
 import 'artikal.dart';
-
-const kOrange = Color(0xFFFF8200);
-const kDark = Color(0xFF161616);
-const kGrey = Color(0xFF2A2A2A);
-const kGreyLight = Color(0xFF3A3A3A);
-const kTextMuted = Color(0xFF888888);
 
 class CategoryNewsScreen extends StatefulWidget {
   final String category;
@@ -34,7 +29,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDark,
+      backgroundColor: context.bg,
       body: SafeArea(
         child: FutureBuilder<List<Article>>(
           future: _future,
@@ -71,7 +66,6 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   List<Widget> _buildContentSlivers(List<Article> articles) {
     final slivers = <Widget>[];
 
-    // 1. HERO — biggest article
     slivers.add(
       SliverToBoxAdapter(
         child: Padding(
@@ -81,14 +75,9 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
       ),
     );
 
-    // 2. Section label: "U FOKUSU" above the duo grid (if we have 2+ more)
     final duo = articles.skip(1).take(2).toList();
     if (duo.length == 2) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: _SectionLabel(text: 'U FOKUSU'),
-        ),
-      );
+      slivers.add(SliverToBoxAdapter(child: _SectionLabel(text: 'U FOKUSU')));
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
@@ -104,11 +93,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
         ),
       );
     } else if (duo.length == 1) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: _SectionLabel(text: 'U FOKUSU'),
-        ),
-      );
+      slivers.add(SliverToBoxAdapter(child: _SectionLabel(text: 'U FOKUSU')));
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
@@ -124,24 +109,18 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
       );
     }
 
-    // 3. Remaining — alternating compact list rows (image left/right)
     final rest = articles.skip(1 + duo.length).toList();
     if (rest.isNotEmpty) {
       slivers.add(
-        SliverToBoxAdapter(
-          child: _SectionLabel(text: 'OSTALE VIJESTI'),
-        ),
-      );
+          SliverToBoxAdapter(child: _SectionLabel(text: 'OSTALE VIJESTI')));
       slivers.add(
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           sliver: SliverList.separated(
             itemCount: rest.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _ListRowCard(
-              article: rest[i],
-              imageOnLeft: i.isEven,
-            ),
+            itemBuilder: (context, i) =>
+                _ListRowCard(article: rest[i], imageOnLeft: i.isEven),
           ),
         ),
       );
@@ -166,8 +145,7 @@ class _CategoryHeader extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: Colors.white),
+            icon: Icon(Icons.arrow_back_rounded, color: context.textPrimary),
           ),
           Container(
             width: 4,
@@ -180,8 +158,8 @@ class _CategoryHeader extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             category.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.8,
@@ -223,19 +201,15 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Row(
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: const BoxDecoration(
-              color: kOrange,
-              shape: BoxShape.circle,
-            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(color: kOrange, shape: BoxShape.circle),
+            child: SizedBox(width: 6, height: 6),
           ),
           const SizedBox(width: 8),
           Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.textPrimary,
               fontSize: 12,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.3,
@@ -243,10 +217,7 @@ class _SectionLabel extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Container(
-              height: 0.6,
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
+            child: Container(height: 0.6, color: context.divider),
           ),
         ],
       ),
@@ -276,7 +247,8 @@ class _HeroCard extends StatelessWidget {
               child: Image.network(
                 article.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: kGreyLight),
+                errorBuilder: (_, __, ___) =>
+                    Container(color: context.surfaceLight),
               ),
             ),
             Positioned.fill(
@@ -299,8 +271,8 @@ class _HeroCard extends StatelessWidget {
               top: 14,
               left: 14,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: kOrange,
                   borderRadius: BorderRadius.circular(20),
@@ -308,8 +280,7 @@ class _HeroCard extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.bolt_rounded,
-                        color: Colors.white, size: 12),
+                    Icon(Icons.bolt_rounded, color: Colors.white, size: 12),
                     SizedBox(width: 4),
                     Text(
                       'NAJNOVIJE',
@@ -348,20 +319,16 @@ class _HeroCard extends StatelessWidget {
                       const Icon(Icons.schedule_rounded,
                           color: Colors.white70, size: 13),
                       const SizedBox(width: 4),
-                      Text(
-                        article.date,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 12),
-                      ),
+                      Text(article.date,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12)),
                       const Spacer(),
                       const Icon(Icons.chat_bubble_outline_rounded,
                           color: Colors.white70, size: 13),
                       const SizedBox(width: 4),
-                      Text(
-                        '${article.comments.length}',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 12),
-                      ),
+                      Text('${article.comments.length}',
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ],
@@ -374,7 +341,7 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
-// ── Duo card (2 side-by-side under hero) ──────────────────────────────────────
+// ── Duo card ───────────────────────────────────────────────────────────────────
 
 class _DuoCard extends StatelessWidget {
   final Article article;
@@ -389,11 +356,9 @@ class _DuoCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: kGrey,
+          color: context.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
+          border: Border.all(color: context.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,7 +373,8 @@ class _DuoCard extends StatelessWidget {
                 child: Image.network(
                   article.imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: kGreyLight),
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: context.surfaceLight),
                 ),
               ),
             ),
@@ -421,8 +387,8 @@ class _DuoCard extends StatelessWidget {
                     height: 40,
                     child: Text(
                       article.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         height: 1.35,
@@ -434,20 +400,16 @@ class _DuoCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Text(
-                        article.date,
-                        style: const TextStyle(
-                            color: kTextMuted, fontSize: 10),
-                      ),
+                      Text(article.date,
+                          style: TextStyle(
+                              color: context.textMuted, fontSize: 10)),
                       const Spacer(),
-                      const Icon(Icons.chat_bubble_outline_rounded,
-                          color: kTextMuted, size: 11),
+                      Icon(Icons.chat_bubble_outline_rounded,
+                          color: context.textMuted, size: 11),
                       const SizedBox(width: 3),
-                      Text(
-                        '${article.comments.length}',
-                        style: const TextStyle(
-                            color: kTextMuted, fontSize: 10),
-                      ),
+                      Text('${article.comments.length}',
+                          style: TextStyle(
+                              color: context.textMuted, fontSize: 10)),
                     ],
                   ),
                 ],
@@ -460,9 +422,7 @@ class _DuoCard extends StatelessWidget {
   }
 }
 
-// ── Wide card (fallback when only 1 article under hero) ──────────────────────
-
-// ── List row card (alternates image left/right) ──────────────────────────────
+// ── List row card ──────────────────────────────────────────────────────────────
 
 class _ListRowCard extends StatelessWidget {
   final Article article;
@@ -479,12 +439,11 @@ class _ListRowCard extends StatelessWidget {
         bottomRight: Radius.circular(imageOnLeft ? 0 : 16),
       ),
       child: SizedBox(
-        width: 118,
-        height: 108,
+        width: 112,
         child: Image.network(
           article.imageUrl,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(color: kGreyLight),
+          errorBuilder: (_, __, ___) => Container(color: context.surfaceLight),
         ),
       ),
     );
@@ -499,12 +458,12 @@ class _ListRowCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               article.title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 height: 1.35,
@@ -512,29 +471,25 @@ class _ListRowCard extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 3),
             Row(
               children: [
-                const Icon(Icons.schedule_rounded,
-                    color: kTextMuted, size: 11),
+                Icon(Icons.schedule_rounded,
+                    color: context.textMuted, size: 11),
                 const SizedBox(width: 3),
                 Expanded(
                   child: Text(
                     article.date,
-                    style: const TextStyle(
-                        color: kTextMuted, fontSize: 10),
+                    style: TextStyle(color: context.textMuted, fontSize: 10),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Icon(Icons.chat_bubble_outline_rounded,
-                    color: kTextMuted, size: 11),
+                Icon(Icons.chat_bubble_outline_rounded,
+                    color: context.textMuted, size: 11),
                 const SizedBox(width: 3),
-                Text(
-                  '${article.comments.length}',
-                  style: const TextStyle(
-                      color: kTextMuted, fontSize: 10),
-                ),
+                Text('${article.comments.length}',
+                    style: TextStyle(color: context.textMuted, fontSize: 10)),
               ],
             ),
           ],
@@ -549,14 +504,15 @@ class _ListRowCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: kGrey,
+          color: context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
+          border: Border.all(color: context.border),
         ),
-        child: Row(
-          children: imageOnLeft ? [image, text] : [text, image],
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: imageOnLeft ? [image, text] : [text, image],
+          ),
         ),
       ),
     );
@@ -574,13 +530,12 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.article_outlined,
-              color: kTextMuted, size: 48),
+          Icon(Icons.article_outlined, color: context.textMuted, size: 48),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Nema vijesti u ovoj kategoriji',
             textAlign: TextAlign.center,
-            style: TextStyle(color: kTextMuted, fontSize: 14),
+            style: TextStyle(color: context.textMuted, fontSize: 14),
           ),
         ],
       ),

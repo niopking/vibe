@@ -4,6 +4,30 @@ import 'package:http/http.dart' as http;
 // ── Globalni cache — isti Future dijele loading screen i home ─────────────────
 Future<List<Article>>? _articlesFuture;
 
+// ── Content block types ───────────────────────────────────────────────────────
+sealed class ContentBlock {}
+
+class TextBlock extends ContentBlock {
+  final String text;
+  TextBlock(this.text);
+}
+
+class YouTubeBlock extends ContentBlock {
+  final String videoId;
+  YouTubeBlock(this.videoId);
+}
+
+class InstagramBlock extends ContentBlock {
+  final String postUrl;
+  InstagramBlock(this.postUrl);
+}
+
+class ImageBlock extends ContentBlock {
+  final String imageUrl;
+  final String? caption;
+  ImageBlock(this.imageUrl, {this.caption});
+}
+
 class Article {
   final String id;
   final String title;
@@ -13,7 +37,8 @@ class Article {
   final List<Map<String, dynamic>> comments;
   final String tekst;
   final int timestamp;
-  const Article({
+  final List<ContentBlock> contentBlocks;
+  Article({
     required this.id,
     required this.title,
     required this.category,
@@ -22,7 +47,152 @@ class Article {
     this.comments = const [],
     this.tekst = '',
     required this.timestamp,
+    this.contentBlocks = const [],
   });
+}
+
+// ── HTML → lista ContentBlock-ova (tekst + YouTube + Instagram) ───────────────
+List<ContentBlock> _parseHtmlContent(String html) {
+  final blocks = <ContentBlock>[];
+
+  // YouTube iframe: <iframe src="...youtube.com/embed/ID...">
+  final ytIframeRe = RegExp(
+    r'<iframe[^>]+src="[^"]*youtube\.com/embed/([A-Za-z0-9_\-]+)[^"]*"[^>]*>(?:.*?</iframe>)?',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // WordPress YouTube figure (no iframe, just URL in wrapper)
+  final ytFigureRe = RegExp(
+    r'<figure[^>]*class="[^"]*is-provider-youtube[^"]*"[^>]*>.*?</figure>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // Instagram blockquote with instagram-media class
+  final igBlockquoteRe = RegExp(
+    r'<blockquote[^>]*class="[^"]*instagram-media[^"]*"[^>]*>.*?</blockquote>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // WordPress Instagram figure
+  final igFigureRe = RegExp(
+    r'<figure[^>]*class="[^"]*is-provider-instagram[^"]*"[^>]*>.*?</figure>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // WordPress image block: <figure class="wp-block-image..."><img src="..."/></figure>
+  final imgFigureRe = RegExp(
+    r'<figure[^>]*class="[^"]*wp-block-image[^"]*"[^>]*>.*?</figure>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // Standalone <img> tags (fallback for images outside figure)
+  final imgTagRe = RegExp(
+    r'<img\b[^>]+>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // Helpers for extracting URLs
+  final ytUrlRe = RegExp(
+    r'https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([A-Za-z0-9_\-]+)',
+  );
+  final igPermalinkRe = RegExp(
+    r'data-instgrm-permalink="([^"]+)"',
+    caseSensitive: false,
+  );
+  final igUrlRe = RegExp(
+    r'https?://(?:www\.)?instagram\.com/p/[A-Za-z0-9_\-]+/?',
+  );
+  final imgSrcRe = RegExp(
+    r'\bsrc="([^"]+)"',
+    caseSensitive: false,
+  );
+  final imgCaptionRe = RegExp(
+    r'<figcaption[^>]*>(.*?)</figcaption>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // Combined regex that matches any embed or image type
+  final combinedRe = RegExp(
+    '(?:${ytIframeRe.pattern})|(?:${ytFigureRe.pattern})|(?:${igBlockquoteRe.pattern})|(?:${igFigureRe.pattern})|(?:${imgFigureRe.pattern})|(?:${imgTagRe.pattern})',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  final textBuf = StringBuffer();
+
+  void flushText() {
+    final raw = textBuf.toString().trim();
+    textBuf.clear();
+    if (raw.isEmpty) return;
+    final text = _htmlToText(raw);
+    for (final para in text.split('\n\n')) {
+      final p = para.trim();
+      if (p.isNotEmpty) blocks.add(TextBlock(p));
+    }
+  }
+
+  var pos = 0;
+  for (final match in combinedRe.allMatches(html)) {
+    // Text before this embed
+    if (match.start > pos) {
+      textBuf.write(html.substring(pos, match.start));
+    }
+    flushText();
+
+    final chunk = match.group(0)!;
+
+    // Determine type by checking which sub-pattern matched
+    if (ytIframeRe.hasMatch(chunk) || ytFigureRe.hasMatch(chunk)) {
+      final iframeMatch = ytIframeRe.firstMatch(chunk);
+      if (iframeMatch != null) {
+        blocks.add(YouTubeBlock(iframeMatch.group(1)!));
+      } else {
+        final urlMatch = ytUrlRe.firstMatch(chunk);
+        if (urlMatch != null) blocks.add(YouTubeBlock(urlMatch.group(1)!));
+      }
+    } else if (igBlockquoteRe.hasMatch(chunk) || igFigureRe.hasMatch(chunk)) {
+      String? url;
+      final permalinkMatch = igPermalinkRe.firstMatch(chunk);
+      if (permalinkMatch != null) {
+        url = permalinkMatch.group(1)!.split('?').first;
+      } else {
+        url = igUrlRe.firstMatch(chunk)?.group(0);
+      }
+      if (url != null) blocks.add(InstagramBlock(url));
+    } else {
+      // Image (wp-block-image figure or standalone img tag)
+      final src = imgSrcRe.firstMatch(chunk)?.group(1);
+      if (src != null && !src.startsWith('data:')) {
+        final captionHtml = imgCaptionRe.firstMatch(chunk)?.group(1);
+        final caption = captionHtml != null ? _htmlToText(captionHtml).trim() : null;
+        blocks.add(ImageBlock(src, caption: caption?.isEmpty == true ? null : caption));
+      }
+    }
+
+    pos = match.end;
+  }
+
+  // Remaining text after last embed
+  if (pos < html.length) textBuf.write(html.substring(pos));
+  flushText();
+
+  // Fallback: if nothing found, treat whole thing as text
+  if (blocks.isEmpty) {
+    final text = _htmlToText(html);
+    for (final para in text.split('\n\n')) {
+      final p = para.trim();
+      if (p.isNotEmpty) blocks.add(TextBlock(p));
+    }
+  }
+
+  return blocks;
 }
 
 // ── HTML → čisti tekst u paragrafima odvojenim sa \n\n ────────────────────────
@@ -107,9 +277,10 @@ Article wpPostToArticle(Map<String, dynamic> post) {
   final dateTime = DateTime.parse(dateStr);
   final timestamp = dateTime.millisecondsSinceEpoch ~/ 1000;
 
-  // Sadržaj: HTML → čisti paragrafi
+  // Sadržaj: HTML → čisti paragrafi + content blokovi (YT, IG)
   final rawHtml = post['content']['rendered'] as String? ?? '';
   final tekst = _htmlToText(rawHtml);
+  final contentBlocks = _parseHtmlContent(rawHtml);
 
   return Article(
     id: id,
@@ -119,6 +290,7 @@ Article wpPostToArticle(Map<String, dynamic> post) {
     imageUrl: imageUrl,
     tekst: tekst,
     timestamp: timestamp,
+    contentBlocks: contentBlocks,
   );
 }
 
